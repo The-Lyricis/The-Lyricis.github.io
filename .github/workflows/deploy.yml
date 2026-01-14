@@ -1,7 +1,7 @@
 name: Deploy React Site
 on:
   push:
-    branches: [master] # push 到 master 分支时自动执行
+    branches: [master] # 确认对应你的分支名
 permissions:
   contents: read
   pages: write
@@ -11,14 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - setup-node:
+      - name: Setup Node
+        uses: actions/setup-node@v4 
+        with:
           node-version: 20
           cache: 'npm'
       - run: npm install
-      - run: npm run build # 生成 build 文件夹
+      - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: './build' 
+          path: './build' # 必须与 vite.config.ts 中的 outDir 一致
   deploy:
     needs: build
     runs-on: ubuntu-latest
