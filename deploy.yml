@@ -1,7 +1,7 @@
 name: Deploy React Site
 on:
   push:
-    branches: [main] # push 到 main 分支时自动执行
+    branches: [master] # push 到 master 分支时自动执行
 permissions:
   contents: read
   pages: write
@@ -15,7 +15,7 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm install
-      - run: npm run build # 生成 dist 文件夹
+      - run: npm run build # 生成 build 文件夹
       - uses: actions/upload-pages-artifact@v3
         with:
           path: './build' 
