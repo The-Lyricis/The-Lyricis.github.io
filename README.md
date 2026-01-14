@@ -1,8 +1,8 @@
-# 🚀 The Lyricis - React + Vite 个人项目
+#  The Lyricis - React + Vite 个人主页
 
 本项目是一个基于 React 和 Vite 构建的现代化网页，通过 Figma 导出 UI，并利用 GitHub Actions 实现全自动构建与部署。
 
-## 🛠 开发工作流 (Workflow)
+##  开发工作流 (Workflow)
 
 为了保证设计与逻辑同步，遵循以下流程：
 
@@ -26,7 +26,7 @@
 
 ---
 
-## 📂 核心目录结构
+##  核心目录结构
 
 - **.github/workflows/deploy.yml**：GitHub Actions 自动化部署脚本。
 - **src/assets/**：存放从 Figma 导出的图片资源。
@@ -35,19 +35,9 @@
 
 ---
 
-## 🔧 常见维护操作
 
-### 如何更新我的网页？
-1. 在本地修改代码或同步 Figma 设计。
-2. 运行 `git add .`。
-3. 运行 `git commit -m "Update: 描述你的修改"`。
-4. 运行 `git push origin master`。
-5. 在 GitHub 仓库的 **Actions** 页面观察编译进度，变绿即代表上线成功。
 
----
-
-## 🌟 未来计划
+##  未来计划
 - [ ] 接入 **Supabase** 后端服务以支持动态数据。
 
----
 
