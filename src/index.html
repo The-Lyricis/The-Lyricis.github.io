@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jiliang Ye - Portfolio</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Framer Motion -->
+    <script src="https://unpkg.com/framer-motion@11/dist/framer-motion.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        
+        h1 {
+            font-size: clamp(3rem, 10vw, 8rem);
+            font-weight: 900;
+            line-height: 1;
+        }
+        
+        h2 {
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        
+        h3 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 700;
+            line-height: 1.3;
+        }
+        
+        p {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { motion, useMotionValue, useTransform, AnimatePresence } = Motion;
+
+        // Lucide Icons Components
+        const Sparkles = () => <i data-lucide="sparkles"></i>;
+        const Gamepad2 = () => <i data-lucide="gamepad-2"></i>;
+        const Palette = () => <i data-lucide="palette"></i>;
+        const Eye = () => <i data-lucide="eye"></i>;
+        const Github = () => <i data-lucide="github"></i>;
+        const ExternalLink = () => <i data-lucide="external-link"></i>;
+        const Mail = () => <i data-lucide="mail"></i>;
+        const Linkedin = () => <i data-lucide="linkedin"></i>;
+        const Twitter = () => <i data-lucide="twitter"></i>;
+
+        // ParticleField Component
+        function ParticleField() {
+            const canvasRef = useRef(null);
+            const particlesRef = useRef([]);
+            const mouseRef = useRef({ x: 0, y: 0 });
+            const animationFrameRef = useRef();
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return;
+
+                const resizeCanvas = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+
+                const colors = ['#00ffff', '#ff00ff', '#ffff00', '#00ff00', '#ff0080'];
+                particlesRef.current = Array.from({ length: 100 }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    size: Math.random() * 2 + 1,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    glow: Math.random() * 10 + 5
+                }));
+
+                const handleMouseMove = (e) => {
+                    mouseRef.current = { x: e.clientX, y: e.clientY };
+                };
+                window.addEventListener('mousemove', handleMouseMove);
+
+                const animate = () => {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    particlesRef.current.forEach((particle, i) => {
+                        particle.x += particle.vx;
+                        particle.y += particle.vy;
+
+                        particle.vx += (Math.random() - 0.5) * 0.1;
+                        particle.vy += (Math.random() - 0.5) * 0.1;
+
+                        const dx = mouseRef.current.x - particle.x;
+                        const dy = mouseRef.current.y - particle.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < 150) {
+                            const force = (150 - dist) / 150;
+                            particle.vx -= (dx / dist) * force * 0.2;
+                            particle.vy -= (dy / dist) * force * 0.2;
+                        }
+
+                        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+                        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+
+                        particle.vx *= 0.99;
+                        particle.vy *= 0.99;
+
+                        const speed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+                        if (speed > 3) {
+                            particle.vx = (particle.vx / speed) * 3;
+                            particle.vy = (particle.vy / speed) * 3;
+                        }
+
+                        ctx.shadowBlur = particle.glow;
+                        ctx.shadowColor = particle.color;
+                        ctx.fillStyle = particle.color;
+                        ctx.beginPath();
+                        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        particlesRef.current.slice(i + 1).forEach(otherParticle => {
+                            const dx = otherParticle.x - particle.x;
+                            const dy = otherParticle.y - particle.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+
+                            if (dist < 100) {
+                                ctx.strokeStyle = `rgba(100, 200, 255, ${(100 - dist) / 100 * 0.2})`;
+                                ctx.lineWidth = 0.5;
+                                ctx.beginPath();
+                                ctx.moveTo(particle.x, particle.y);
+                                ctx.lineTo(otherParticle.x, otherParticle.y);
+                                ctx.stroke();
+                            }
+                        });
+                    });
+
+                    animationFrameRef.current = requestAnimationFrame(animate);
+                };
+
+                animate();
+
+                return () => {
+                    window.removeEventListener('resize', resizeCanvas);
+                    window.removeEventListener('mousemove', handleMouseMove);
+                    if (animationFrameRef.current) {
+                        cancelAnimationFrame(animationFrameRef.current);
+                    }
+                };
+            }, []);
+
+            return <canvas ref={canvasRef} className="fixed inset-0 w-full h-full z-0" />;
+        }
+
+        // Hero Component
+        function Hero({ onExplore }) {
+            const [glitchActive, setGlitchActive] = useState(false);
+
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setGlitchActive(true);
+                    setTimeout(() => setGlitchActive(false), 200);
+                }, 3000);
+                return () => clearInterval(interval);
+            }, []);
+
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="relative min-h-screen flex items-center justify-center px-8">
+                    <div className="text-center">
+                        <motion.div
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 1 }}
+                            className="relative"
+                        >
+                            <h1
+                                className={`text-white mb-6 transition-all duration-200 ${glitchActive ? 'glitch' : ''}`}
+                                style={{
+                                    textShadow: glitchActive
+                                        ? '0 0 10px #00ffff, 0 0 20px #ff00ff, 0 0 30px #ffff00'
+                                        : '0 0 20px rgba(0, 255, 255, 0.5)'
+                                }}
+                            >
+                                Jiliang Ye
+                            </h1>
+
+                            <div className="flex items-center justify-center gap-6 mb-12">
+                                <div>
+                                    <Palette />
+                                </div>
+                                <p className="text-cyan-300 tracking-widest">
+                                    TA · GAMEDEV · GRAPHICS
+                                </p>
+                                <div>
+                                    <Gamepad2 />
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <motion.button
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={onExplore}
+                            className="group relative px-12 py-4 bg-transparent border-2 border-cyan-400 text-cyan-400 overflow-hidden"
+                            style={{ boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)' }}
+                        >
+                            <motion.div
+                                className="absolute inset-0 bg-cyan-400"
+                                initial={{ x: '-100%' }}
+                                whileHover={{ x: 0 }}
+                                transition={{ duration: 0.3 }}
+                            />
+                            <span className="relative z-10 flex items-center gap-2 group-hover:text-black transition-colors">
+                                <Sparkles />
+                                ENTER THE EXPERIENCE
+                                <Sparkles />
+                            </span>
+                        </motion.button>
+
+                        <motion.div
+                            className="absolute top-1/4 left-1/4 w-4 h-4 bg-yellow-400 rounded-full"
+                            animate={{ y: [0, -20, 0], opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                            style={{ boxShadow: '0 0 20px #ffff00' }}
+                        />
+                        
+                        <motion.div
+                            className="absolute bottom-1/3 right-1/4 w-6 h-6 bg-magenta-400 rounded-full"
+                            animate={{ y: [0, 20, 0], opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                            style={{ boxShadow: '0 0 20px #ff00ff' }}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        // SkillOrbs Component
+        function SkillOrbs({ activeSection }) {
+            const [hoveredOrb, setHoveredOrb] = useState(null);
+
+            const skills = [
+                {
+                    id: 'ta',
+                    title: 'TECHNICAL ART',
+                    icon: <Palette />,
+                    color: '#00ffff',
+                    glowColor: 'rgba(0, 255, 255, 0.6)',
+                    description: ['Shader Development', 'VFX Pipeline', 'Tool Development', 'Performance Optimization']
+                },
+                {
+                    id: 'gamedev',
+                    title: 'GAME DEV',
+                    icon: <Gamepad2 />,
+                    color: '#ff00ff',
+                    glowColor: 'rgba(255, 0, 255, 0.6)',
+                    description: ['Indie Game Development', 'Gameplay Programming', 'Unity & Unreal', 'Rapid Prototyping']
+                },
+                {
+                    id: 'graphics',
+                    title: 'GRAPHICS',
+                    icon: <Sparkles />,
+                    color: '#ffff00',
+                    glowColor: 'rgba(255, 255, 0, 0.6)',
+                    description: ['Computer Graphics', 'Procedural Generation', 'Rendering Research', 'Algorithm Design']
+                }
+            ];
+
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="min-h-screen flex items-center justify-center px-8 py-20">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-6xl w-full">
+                        {skills.map((skill, index) => (
+                            <SkillOrb
+                                key={skill.id}
+                                skill={skill}
+                                index={index}
+                                isHovered={hoveredOrb === skill.id}
+                                onHover={setHoveredOrb}
+                            />
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function SkillOrb({ skill, index, isHovered, onHover }) {
+            const x = useMotionValue(0);
+            const y = useMotionValue(0);
+            
+            const rotateX = useTransform(y, [-100, 100], [30, -30]);
+            const rotateY = useTransform(x, [-100, 100], [-30, 30]);
+
+            const handleMouseMove = (e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                x.set(e.clientX - centerX);
+                y.set(e.clientY - centerY);
+            };
+
+            const handleMouseLeave = () => {
+                x.set(0);
+                y.set(0);
+                onHover(null);
+            };
+
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.2, duration: 0.5 }}
+                    className="relative"
+                >
+                    <motion.div
+                        className="relative perspective-1000"
+                        onMouseMove={handleMouseMove}
+                        onMouseEnter={() => onHover(skill.id)}
+                        onMouseLeave={handleMouseLeave}
+                        whileHover={{ scale: 1.05 }}
+                    >
+                        <motion.div
+                            className="relative bg-black/50 backdrop-blur-sm border-2 rounded-lg p-8 cursor-pointer"
+                            style={{
+                                borderColor: skill.color,
+                                boxShadow: isHovered
+                                    ? `0 0 40px ${skill.glowColor}, inset 0 0 20px ${skill.glowColor}`
+                                    : `0 0 20px ${skill.glowColor}`,
+                                rotateX,
+                                rotateY,
+                                transformStyle: 'preserve-3d'
+                            }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        >
+                            <motion.div
+                                className="flex justify-center mb-6"
+                                style={{ color: skill.color }}
+                                animate={{ rotate: isHovered ? [0, 360] : 0 }}
+                                transition={{ duration: 0.6 }}
+                            >
+                                {skill.icon}
+                            </motion.div>
+
+                            <h3 className="text-center mb-4 tracking-wider" style={{ color: skill.color }}>
+                                {skill.title}
+                            </h3>
+
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{
+                                    opacity: isHovered ? 1 : 0,
+                                    height: isHovered ? 'auto' : 0
+                                }}
+                                transition={{ duration: 0.3 }}
+                                className="overflow-hidden"
+                            >
+                                <ul className="space-y-2 text-white/80 text-center">
+                                    {skill.description.map((item, i) => (
+                                        <motion.li
+                                            key={i}
+                                            initial={{ x: -20, opacity: 0 }}
+                                            animate={{
+                                                x: isHovered ? 0 : -20,
+                                                opacity: isHovered ? 1 : 0
+                                            }}
+                                            transition={{ delay: i * 0.05 }}
+                                        >
+                                            {item}
+                                        </motion.li>
+                                    ))}
+                                </ul>
+                            </motion.div>
+
+                            {isHovered && (
+                                <>
+                                    <motion.div
+                                        className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2"
+                                        style={{ borderColor: skill.color }}
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ duration: 0.3 }}
+                                    />
+                                    <motion.div
+                                        className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2"
+                                        style={{ borderColor: skill.color }}
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ duration: 0.3 }}
+                                    />
+                                    <motion.div
+                                        className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2"
+                                        style={{ borderColor: skill.color }}
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ duration: 0.3 }}
+                                    />
+                                    <motion.div
+                                        className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2"
+                                        style={{ borderColor: skill.color }}
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ duration: 0.3 }}
+                                    />
+                                </>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                </motion.div>
+            );
+        }
+
+        // ProjectGallery Component
+        function ProjectGallery() {
+            const [selectedProject, setSelectedProject] = useState(null);
+            const [hoveredId, setHoveredId] = useState(null);
+
+            const projects = [
+                { id: 1, title: 'Custom Shader Pipeline', category: 'ta', description: 'PBR shader system with real-time parameter tweaking', color: '#00ffff' },
+                { id: 2, title: 'Procedural Dungeon', category: 'gamedev', description: 'Roguelike with algorithm-driven level generation', color: '#ff00ff' },
+                { id: 3, title: 'GPU Particle System', category: 'graphics', description: 'Million-particle simulation using compute shaders', color: '#ffff00' },
+                { id: 4, title: 'Tool Development', category: 'ta', description: 'Custom Unity tools for artist workflow automation', color: '#00ffff' },
+                { id: 5, title: 'Indie Platformer', category: 'gamedev', description: 'Physics-based movement with tight game feel', color: '#ff00ff' },
+                { id: 6, title: 'Ray Marching Demo', category: 'graphics', description: 'Real-time SDF rendering with volumetric effects', color: '#ffff00' }
+            ];
+
+            return (
+                <div className="min-h-screen px-8 py-20">
+                    <motion.h2
+                        initial={{ opacity: 0, y: 50 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-center text-white mb-16 tracking-wider"
+                        style={{ textShadow: '0 0 20px rgba(0, 255, 255, 0.5)' }}
+                    >
+                        FEATURED PROJECTS
+                    </motion.h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                        {projects.map((project, index) => (
+                            <ProjectCard
+                                key={project.id}
+                                project={project}
+                                index={index}
+                                isHovered={hoveredId === project.id}
+                                onHover={setHoveredId}
+                                onClick={setSelectedProject}
+                            />
+                        ))}
+                    </div>
+
+                    <AnimatePresence>
+                        {selectedProject && (
+                            <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+                        )}
+                    </AnimatePresence>
+                </div>
+            );
+        }
+
+        function ProjectCard({ project, index, isHovered, onHover, onClick }) {
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    onMouseEnter={() => onHover(project.id)}
+                    onMouseLeave={() => onHover(null)}
+                    onClick={() => onClick(project)}
+                    className="relative group cursor-pointer"
+                >
+                    <motion.div
+                        className="relative aspect-video bg-gradient-to-br from-gray-900 to-black rounded-lg overflow-hidden border-2"
+                        style={{
+                            borderColor: isHovered ? project.color : 'transparent',
+                            boxShadow: isHovered ? `0 0 30px ${project.color}80` : 'none'
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    >
+                        <div className="absolute inset-0 opacity-20">
+                            <div
+                                className="w-full h-full"
+                                style={{
+                                    backgroundImage: `linear-gradient(${project.color} 1px, transparent 1px), linear-gradient(90deg, ${project.color} 1px, transparent 1px)`,
+                                    backgroundSize: '20px 20px'
+                                }}
+                            />
+                        </div>
+
+                        <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+                            <div className="flex justify-between items-start">
+                                <span
+                                    className="px-3 py-1 rounded text-xs tracking-wider uppercase"
+                                    style={{
+                                        backgroundColor: `${project.color}20`,
+                                        color: project.color,
+                                        border: `1px solid ${project.color}`
+                                    }}
+                                >
+                                    {project.category}
+                                </span>
+                                
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0 }}
+                                    animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <Eye />
+                                </motion.div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-white mb-2">{project.title}</h3>
+                                <p className="text-gray-400 text-sm">{project.description}</p>
+                            </div>
+                        </div>
+
+                        <motion.div
+                            className="absolute inset-0"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: isHovered ? 0.1 : 0 }}
+                            style={{ backgroundColor: project.color }}
+                        />
+                    </motion.div>
+                </motion.div>
+            );
+        }
+
+        function ProjectModal({ project, onClose }) {
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-8"
+                >
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-gray-900 rounded-lg max-w-2xl w-full p-8 border-2"
+                        style={{
+                            borderColor: project.color,
+                            boxShadow: `0 0 40px ${project.color}40`
+                        }}
+                    >
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <span
+                                    className="px-3 py-1 rounded text-xs tracking-wider uppercase inline-block mb-4"
+                                    style={{
+                                        backgroundColor: `${project.color}20`,
+                                        color: project.color,
+                                        border: `1px solid ${project.color}`
+                                    }}
+                                >
+                                    {project.category}
+                                </span>
+                                <h2 className="text-white">{project.title}</h2>
+                            </div>
+                            <button onClick={onClose} className="text-white hover:text-gray-400 transition-colors">
+                                ✕
+                            </button>
+                        </div>
+
+                        <p className="text-gray-400 mb-8">{project.description}</p>
+
+                        <div className="aspect-video bg-gradient-to-br from-gray-800 to-black rounded-lg mb-8 flex items-center justify-center">
+                            <span className="text-gray-600">Project Preview</span>
+                        </div>
+
+                        <div className="flex gap-4">
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="flex-1 py-3 border-2 rounded flex items-center justify-center gap-2 transition-all"
+                                style={{ borderColor: project.color, color: project.color }}
+                            >
+                                <Github />
+                                View Code
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="flex-1 py-3 rounded flex items-center justify-center gap-2 transition-all"
+                                style={{ backgroundColor: project.color, color: '#000' }}
+                            >
+                                <ExternalLink />
+                                Live Demo
+                            </motion.button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            );
+        }
+
+        // InteractiveFooter Component
+        function InteractiveFooter() {
+            const [ripples, setRipples] = useState([]);
+            const containerRef = useRef(null);
+            const idCounterRef = useRef(0);
+
+            const handleClick = (e) => {
+                if (!containerRef.current) return;
+                
+                const rect = containerRef.current.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const id = idCounterRef.current++;
+                setRipples(prev => [...prev, { x, y, id }]);
+                
+                setTimeout(() => {
+                    setRipples(prev => prev.filter(r => r.id !== id));
+                }, 1000);
+            };
+
+            const socials = [
+                { icon: Mail, label: 'Email', color: '#00ffff' },
+                { icon: Github, label: 'GitHub', color: '#ff00ff' },
+                { icon: Linkedin, label: 'LinkedIn', color: '#ffff00' },
+                { icon: Twitter, label: 'Twitter', color: '#00ff00' }
+            ];
+
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div
+                    ref={containerRef}
+                    onClick={handleClick}
+                    className="relative min-h-[40vh] px-8 py-20 overflow-hidden cursor-pointer"
+                >
+                    {ripples.map(ripple => (
+                        <motion.div
+                            key={ripple.id}
+                            className="absolute rounded-full border-2 border-cyan-400"
+                            style={{
+                                left: ripple.x,
+                                top: ripple.y,
+                                x: '-50%',
+                                y: '-50%'
+                            }}
+                            initial={{ width: 0, height: 0, opacity: 1 }}
+                            animate={{ width: 300, height: 300, opacity: 0 }}
+                            transition={{ duration: 1, ease: 'easeOut' }}
+                        />
+                    ))}
+
+                    <div className="relative z-10 max-w-4xl mx-auto text-center">
+                        <motion.h2
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="text-white mb-8 tracking-wider"
+                            style={{ textShadow: '0 0 20px rgba(0, 255, 255, 0.5)' }}
+                        >
+                            LET'S CREATE SOMETHING AMAZING
+                        </motion.h2>
+
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
+                            className="text-gray-400 mb-12"
+                        >
+                            Click anywhere to create ripples · Hover over icons for effects
+                        </motion.p>
+
+                        <div className="flex justify-center gap-8 mb-12">
+                            {socials.map((social, index) => (
+                                <SocialIcon key={social.label} social={social} index={index} />
+                            ))}
+                        </div>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.4 }}
+                            className="text-gray-600 text-sm"
+                        >
+                            <p>© 2024 Portfolio · Designed & Developed with ✨</p>
+                        </motion.div>
+                    </div>
+                </div>
+            );
+        }
+
+        function SocialIcon({ social, index }) {
+            const [isHovered, setIsHovered] = useState(false);
+            const Icon = social.icon;
+
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <motion.a
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    whileHover={{ scale: 1.2, rotate: 360 }}
+                    className="relative group"
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                >
+                    <motion.div
+                        className="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all"
+                        style={{
+                            borderColor: isHovered ? social.color : '#ffffff40',
+                            backgroundColor: isHovered ? `${social.color}20` : 'transparent',
+                            boxShadow: isHovered ? `0 0 30px ${social.color}60` : 'none'
+                        }}
+                        animate={{
+                            boxShadow: isHovered
+                                ? [`0 0 20px ${social.color}60`, `0 0 40px ${social.color}80`, `0 0 20px ${social.color}60`]
+                                : 'none'
+                        }}
+                        transition={{ duration: 1, repeat: isHovered ? Infinity : 0 }}
+                    >
+                        <Icon />
+                    </motion.div>
+
+                    <motion.span
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 10 }}
+                        className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs whitespace-nowrap"
+                        style={{ color: social.color }}
+                    >
+                        {social.label} 
+                    </motion.span>
+                </motion.a>
+            );
+        }
+
+        // Main App Component
+        function App() {
+            const [activeSection, setActiveSection] = useState('hero');
+
+            useEffect(() => {
+                lucide.createIcons();
+            }, [activeSection]);
+
+            return (
+                <div className="relative w-full min-h-screen bg-black overflow-hidden">
+                    <ParticleField />
+                    <div className="relative z-10">
+                        <Hero onExplore={() => setActiveSection('skills')} />
+                        <SkillOrbs activeSection={activeSection} />
+                        <ProjectGallery />
+                        <InteractiveFooter />
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // Initialize Lucide icons
+        setTimeout(() => {
+            lucide.createIcons();
+        }, 100);
+    </script>
+</body>
+</html>
