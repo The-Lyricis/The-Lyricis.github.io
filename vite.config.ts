@@ -70,7 +70,7 @@
       },
     },
     build: {
-      target: 'es2020',
+      target: 'esnext',
       outDir: 'build',
     },
     server: {
