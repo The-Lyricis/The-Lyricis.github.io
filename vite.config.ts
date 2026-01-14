@@ -70,8 +70,8 @@
       },
     },
     build: {
-      target: 'esnext',
-      outDir: 'build',
+      target: 'esnext', // Specify the build target
+      outDir: 'build',  // Specify the output directory
     },
     server: {
       port: 3000,
