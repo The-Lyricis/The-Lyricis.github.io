@@ -126,7 +126,7 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: -9999, y: -9999 });
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | null>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
 
   // Constants for behavior

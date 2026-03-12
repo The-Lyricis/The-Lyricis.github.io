@@ -3,9 +3,9 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
   ExternalLink,
-  Eye,
   Filter,
   Github,
+  Pin,
   Search,
   Shuffle,
   X,
@@ -15,6 +15,7 @@ import img3 from "figma:asset/projects/ray-marching-renderer-cover.png";
 import img5 from "figma:asset/projects/hda-hex-terrain-cover.png";
 import img6 from "figma:asset/projects/gpu-particle-system-cover.png";
 import christmasPsychoImg from "figma:asset/projects/christmas-psycho-cover.png";
+import hybridEngineImg from "figma:asset/projects/hybrid-engine-cover.png";
 import unselfImg from "figma:asset/projects/unself-cover.png";
 import vibrantImg from "figma:asset/projects/vibrant-cover.png";
 
@@ -31,6 +32,8 @@ interface Project {
   tags: string[];
   github?: string;
   demo?: string;
+  projectPage?: string;
+  pinned?: boolean;
 }
 
 const CATEGORIES = [
@@ -147,6 +150,29 @@ const RAW_PROJECTS: Project[] = [
     image: img3,
     tags: ["GLSL", "Ray Marching", "SDF", "Real-time"],
   },
+  {
+    id: 10,
+    title: "Hybrid Engine",
+    category: "graphics",
+    description:
+      "A personal engine study project focused on modern engine architecture, system implementation, and editor tooling.",
+    longDescription:
+      "Hybrid Engine is a personal project for studying and practicing modern engine architecture through hands-on implementation. The work is centered on understanding how core runtime systems collaborate, where module boundaries should live, and how editor-facing workflows connect back to engine fundamentals.\n\nKey Features:\n- Core runtime foundation with logging, events, input, windowing, and main loop management\n- OpenGL rendering backend with framebuffer-driven rendering and split Scene / Game viewports\n- EnTT-based ECS architecture with scene serialization and hierarchy data\n- Editor tooling with docking UI, Hierarchy, Inspector, Scene View, gizmo interaction, and object picking\n- Asset pipeline foundations with VFS, registry, .meta files, and import workflows for textures, meshes, materials, and scenes\n- Basic lighting support for directional lights and point lights\n- Early physics baseline with AABB collision and rigidbody iteration",
+    color: "#9D4EDD",
+    image: hybridEngineImg,
+    tags: [
+      "C++17",
+      "OpenGL",
+      "ECS",
+      "CMake",
+      "Engine Dev",
+      "Editor",
+      "Asset Pipeline",
+      "Physics",
+    ],
+    github: "https://github.com/The-Lyricis/HybridEngine",
+    pinned: true,
+  },
 ];
 
 export function ProjectGallery() {
@@ -157,15 +183,18 @@ export function ProjectGallery() {
   const [shuffledProjects, setShuffledProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    const newest = RAW_PROJECTS[0];
-    const others = [...RAW_PROJECTS.slice(1)];
+    const pinnedProjects = RAW_PROJECTS.filter((project) => project.pinned);
+    const unpinnedProjects = RAW_PROJECTS.filter((project) => !project.pinned);
 
-    for (let i = others.length - 1; i > 0; i -= 1) {
+    for (let i = unpinnedProjects.length - 1; i > 0; i -= 1) {
       const j = Math.floor(Math.random() * (i + 1));
-      [others[i], others[j]] = [others[j], others[i]];
+      [unpinnedProjects[i], unpinnedProjects[j]] = [
+        unpinnedProjects[j],
+        unpinnedProjects[i],
+      ];
     }
 
-    setShuffledProjects([newest, ...others]);
+    setShuffledProjects([...pinnedProjects, ...unpinnedProjects]);
   }, []);
 
   const filteredProjects = useMemo(() => {
@@ -265,12 +294,22 @@ export function ProjectGallery() {
 
             <button
               onClick={() => {
-                const currentList = [...shuffledProjects];
-                for (let i = currentList.length - 1; i > 0; i -= 1) {
+                const pinnedProjects = shuffledProjects.filter(
+                  (project) => project.pinned,
+                );
+                const unpinnedProjects = shuffledProjects.filter(
+                  (project) => !project.pinned,
+                );
+
+                for (let i = unpinnedProjects.length - 1; i > 0; i -= 1) {
                   const j = Math.floor(Math.random() * (i + 1));
-                  [currentList[i], currentList[j]] = [currentList[j], currentList[i]];
+                  [unpinnedProjects[i], unpinnedProjects[j]] = [
+                    unpinnedProjects[j],
+                    unpinnedProjects[i],
+                  ];
                 }
-                setShuffledProjects(currentList);
+
+                setShuffledProjects([...pinnedProjects, ...unpinnedProjects]);
               }}
               className="p-2 rounded-lg bg-[#112240] border border-[#233554] text-[#64FFDA] hover:bg-[#233554] transition-colors"
               title="Shuffle Suggestions"
@@ -397,17 +436,16 @@ const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
                 {project.category}
               </span>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{
-                  opacity: isHovered ? 1 : 0,
-                  scale: isHovered ? 1 : 0,
-                }}
-                className="backdrop-blur-sm rounded-full p-2 border border-white/10"
-                style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-              >
-                <Eye className="w-5 h-5" style={{ color: project.color }} />
-              </motion.div>
+              {project.pinned && (
+                <div
+                  className="backdrop-blur-md rounded-full p-2 shadow-lg"
+                  style={{
+                    backgroundColor: "rgba(2, 12, 27, 0.8)",
+                  }}
+                >
+                  <Pin className="w-4 h-4" style={{ color: "#FFD700" }} />
+                </div>
+              )}
             </div>
 
             <div className="transform transition-transform duration-300 group-hover:-translate-y-1">
@@ -613,20 +651,24 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
               LIVE DEMO
             </motion.a>
           )}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex-1 py-3 border rounded-lg flex items-center justify-center gap-2 transition-all font-mono font-bold text-sm"
-            style={{
-              borderColor: "#233554",
-              color: "#8892B0",
-              backgroundColor: "transparent",
-            }}
-            onClick={() => {}}
-          >
-            <ArrowRight className="w-4 h-4" />
-            PROJECT PAGE
-          </motion.button>
+          {project.projectPage && (
+            <motion.a
+              href={project.projectPage}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex-1 py-3 border rounded-lg flex items-center justify-center gap-2 transition-all font-mono font-bold text-sm"
+              style={{
+                borderColor: "#233554",
+                color: "#8892B0",
+                backgroundColor: "transparent",
+              }}
+            >
+              <ArrowRight className="w-4 h-4" />
+              PROJECT PAGE
+            </motion.a>
+          )}
         </div>
       </motion.div>
     </motion.div>

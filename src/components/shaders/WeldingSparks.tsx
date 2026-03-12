@@ -9,7 +9,7 @@ interface WeldingSparksProps {
 
 export function WeldingSparks({ x, y, isActive }: WeldingSparksProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | null>(null);
   const particlesRef = useRef<Particle[]>([]);
 
   interface Particle {

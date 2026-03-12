@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Toaster } from "sonner@2.0.3";
+import { Toaster } from "sonner";
 import { AboutSection } from "./components/AboutSection";
 import { BackToTop } from "./components/BackToTop";
 import { ContactSection } from "./components/ContactSection";
