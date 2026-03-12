@@ -48,7 +48,6 @@ export function Navigation() {
   const isNavVisible = !isScrolled || isMouseTop || isMobileMenuOpen;
 
   const scrollToSection = (id: string) => {
-    setActiveSection(id);
     setIsMobileMenuOpen(false);
     
     // Map navigation IDs to actual section IDs
@@ -64,12 +63,18 @@ export function Navigation() {
     const targetId = sectionMap[id] || id;
     const targetElement = document.getElementById(targetId);
     
-    if (targetElement) {
-      targetElement.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
+    if (!targetElement) return;
+
+    setActiveSection(id);
+    targetElement.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'start'
+    });
+  };
+
+  const handleResumeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -139,6 +144,27 @@ export function Navigation() {
                 )}
               </motion.a>
             ))}
+
+            <motion.a
+              href="#resume"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleResumeClick}
+              className="px-4 py-2 border-2 rounded text-sm tracking-wider transition-all"
+              style={{
+                borderColor: '#64FFDA',
+                color: '#64FFDA',
+                backgroundColor: 'transparent'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(100, 255, 218, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              Resume
+            </motion.a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -189,6 +215,22 @@ export function Navigation() {
                     {item.label}
                   </motion.a>
                 ))}
+
+                <motion.a
+                  href="#resume"
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navItems.length * 0.1 }}
+                  onClick={handleResumeClick}
+                  className="block px-6 py-3 border-2 rounded text-center tracking-wider transition-all"
+                  style={{
+                    borderColor: '#64FFDA',
+                    color: '#64FFDA',
+                    backgroundColor: 'transparent'
+                  }}
+                >
+                  Resume
+                </motion.a>
               </nav>
             </div>
           </motion.div>

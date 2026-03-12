@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { FolderGit2, Mail } from "lucide-react";
 import { CircuitLines } from "./CircuitLines";
@@ -12,6 +12,13 @@ interface LetterState {
   isBroken: boolean;
   isRepairing: boolean;
 }
+
+type TitleBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 export function Hero() {
   const [letterStates, setLetterStates] = useState<LetterState[]>([
@@ -40,63 +47,112 @@ export function Hero() {
       }
     >
   >({});
+  const [titleBounds, setTitleBounds] = useState<TitleBounds | null>(null);
+  const [isHeroVisible, setIsHeroVisible] = useState(true);
 
+  const heroRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const nextBreakIndexRef = useRef(0);
   const name = "Hi, I'm Jiliang Ye";
   const normalLetterStyle = {
     color: "#E6F1FF",
     textShadow: "0 0 20px rgba(100, 255, 218, 0.3)",
   };
 
-  useEffect(() => {
+  const updatePositions = useCallback(() => {
     if (!titleRef.current) return;
 
-    const updatePositions = () => {
-      if (!titleRef.current) return;
+    const spans = titleRef.current.querySelectorAll<HTMLSpanElement>(
+      "span[data-char-index]",
+    );
+    const titleRect = titleRef.current.getBoundingClientRect();
+    const heroRect = heroRef.current?.getBoundingClientRect();
+    const cornerRects = frameRef.current
+      ? Array.from(
+          frameRef.current.querySelectorAll<HTMLDivElement>("[data-title-corner]"),
+        ).map((corner) => corner.getBoundingClientRect())
+      : [];
+    const entries = Array.from(spans).map((span) => {
+      const idx = Number(span.dataset.charIndex);
+      const rect = span.getBoundingClientRect();
+      return { idx, rect };
+    });
 
-      const spans = titleRef.current.querySelectorAll<HTMLSpanElement>(
-        "span[data-char-index]",
-      );
-      const titleRect = titleRef.current.getBoundingClientRect();
-      const entries = Array.from(spans).map((span) => {
-        const idx = Number(span.dataset.charIndex);
-        const rect = span.getBoundingClientRect();
-        return { idx, rect };
+    const maxHeight = Math.max(...entries.map((entry) => entry.rect.height));
+    const baselineY = titleRect.height * 0.78;
+    const positions: typeof letterPositions = {};
+
+    entries.forEach(({ idx, rect }) => {
+      positions[idx] = {
+        x: rect.left + rect.width / 2 - titleRect.left,
+        y: rect.top + rect.height / 2 - titleRect.top,
+        baselineY,
+        height: rect.height,
+        lineHeight: maxHeight,
+      };
+    });
+
+    setLetterPositions(positions);
+
+    if (heroRect && cornerRects.length > 0) {
+      const minX = Math.min(...cornerRects.map((rect) => rect.left));
+      const minY = Math.min(...cornerRects.map((rect) => rect.top));
+      const maxX = Math.max(...cornerRects.map((rect) => rect.right));
+      const maxY = Math.max(...cornerRects.map((rect) => rect.bottom));
+
+      setTitleBounds({
+        x: minX - heroRect.left,
+        y: minY - heroRect.top,
+        width: maxX - minX,
+        height: maxY - minY,
       });
-
-      const maxHeight = Math.max(...entries.map((entry) => entry.rect.height));
-      const baselineY = titleRect.height * 0.78;
-      const positions: typeof letterPositions = {};
-
-      entries.forEach(({ idx, rect }) => {
-        positions[idx] = {
-          x: rect.left + rect.width / 2 - titleRect.left,
-          y: rect.top + rect.height / 2 - titleRect.top,
-          baselineY,
-          height: rect.height,
-          lineHeight: maxHeight,
-        };
+    } else if (heroRect) {
+      setTitleBounds({
+        x: titleRect.left - heroRect.left,
+        y: titleRect.top - heroRect.top,
+        width: titleRect.width,
+        height: titleRect.height,
       });
+    }
+  }, []);
 
-      setLetterPositions(positions);
-    };
+  useEffect(() => {
+    if (!titleRef.current) return;
 
     updatePositions();
     window.addEventListener("resize", updatePositions);
 
     return () => window.removeEventListener("resize", updatePositions);
+  }, [updatePositions]);
+
+  useEffect(() => {
+    if (!heroRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeroVisible(entry.isIntersecting);
+      },
+      {
+        threshold: 0.05,
+      },
+    );
+
+    observer.observe(heroRef.current);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    let currentIndex = 0;
-
     const breakInterval = setInterval(() => {
       setLetterStates((prev) => {
-        const available = prev.filter((item) => !item.isBroken && !item.isRepairing);
-        if (available.length === 0) return prev;
+        const hasActiveRepair = prev.some(
+          (item) => item.isBroken || item.isRepairing,
+        );
+        if (hasActiveRepair) return prev;
 
-        const target = prev[currentIndex % 2];
-        currentIndex += 1;
+        const target = prev[nextBreakIndexRef.current % prev.length];
+        nextBreakIndexRef.current =
+          (nextBreakIndexRef.current + 1) % prev.length;
 
         return prev.map((item) =>
           item.letter === target.letter ? { ...item, isBroken: true } : item,
@@ -108,21 +164,22 @@ export function Hero() {
   }, []);
 
   useEffect(() => {
-    letterStates.forEach((letterState) => {
-      if (!letterState.isBroken || letterState.isRepairing) return;
+    const pendingRepair = letterStates.find(
+      (letterState) => letterState.isBroken && !letterState.isRepairing,
+    );
+    if (!pendingRepair) return;
 
-      const timer = window.setTimeout(() => {
-        setLetterStates((prev) =>
-          prev.map((item) =>
-            item.letter === letterState.letter
-              ? { ...item, isRepairing: true }
-              : item,
-          ),
-        );
-      }, 1500);
+    const timer = window.setTimeout(() => {
+      setLetterStates((prev) =>
+        prev.map((item) =>
+          item.letter === pendingRepair.letter
+            ? { ...item, isRepairing: true }
+            : item,
+        ),
+      );
+    }, 1500);
 
-      return () => window.clearTimeout(timer);
-    });
+    return () => window.clearTimeout(timer);
   }, [letterStates]);
 
   const handleRepairComplete = (letter: RepairableLetter) => {
@@ -156,7 +213,10 @@ export function Hero() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-8 overflow-hidden">
+    <div
+      ref={heroRef}
+      className="relative min-h-screen flex items-center justify-center px-8 overflow-hidden"
+    >
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -165,12 +225,14 @@ export function Hero() {
         }}
       />
 
-      <CircuitLines />
+      <CircuitLines titleBounds={titleBounds} active={isHeroVisible} />
 
       <div className="text-center relative">
         <motion.div
+          ref={frameRef}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
+          onAnimationComplete={updatePositions}
           transition={{ duration: 1 }}
           className="relative inline-block"
         >
@@ -291,6 +353,7 @@ export function Hero() {
           ].map((position, index) => (
             <motion.div
               key={index}
+              data-title-corner
               className="absolute w-6 h-6"
               style={{
                 ...position,
@@ -312,7 +375,7 @@ export function Hero() {
         <div className="flex items-center justify-center gap-6 mt-8 mb-12 relative z-10">
           <div className="relative">
             <p className="tracking-widest" style={{ color: "#8892B0" }}>
-              TECHNICAL ARTIST • GAME DEVELOPER • GRAPHICS RESEARCHER
+              TECHNICAL ARTIST | GAME DEVELOPER | GRAPHICS RESEARCHER
             </p>
             <motion.div
               className="absolute -bottom-1 left-0 h-0.5"

@@ -54,7 +54,7 @@ export default function App() {
       />
 
       <div className="relative z-10">
-        <section id="home">
+        <section id="home" data-particle-occluder>
           <Hero />
         </section>
         <section id="about">
@@ -69,7 +69,7 @@ export default function App() {
         <section id="featured-projects">
           <ProjectGallery />
         </section>
-        <section id="contact">
+        <section id="contact" data-particle-occluder>
           <ContactSection />
         </section>
         <InteractiveFooter />

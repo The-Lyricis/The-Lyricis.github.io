@@ -118,6 +118,7 @@ export function TechStack() {
   return (
     <div
       id="skills"
+      data-particle-occluder
       className="relative min-h-screen px-6 py-24 flex flex-col justify-center overflow-hidden"
     >
       <div

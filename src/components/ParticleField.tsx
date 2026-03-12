@@ -122,16 +122,25 @@ interface ParticleFieldProps {
   themeIndex?: number;
 }
 
+const MAX_PARTICLE_CANVAS_DPR = 1.5;
+
+function getParticleTargets(width: number, height: number) {
+  const areaFactor = Math.max(1, Math.floor((width * height) / 170000));
+  const min = Math.max(48, Math.min(120, areaFactor * 15));
+  const max = Math.max(min + 16, Math.min(180, min + 36));
+  return { min, max };
+}
+
 export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: -9999, y: -9999 });
   const animationFrameRef = useRef<number | null>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
+  const occluderRectsRef = useRef<Array<{ left: number; top: number; right: number; bottom: number }>>([]);
+  const isDocumentVisibleRef = useRef(typeof document === "undefined" ? true : !document.hidden);
 
   // Constants for behavior
-  const MIN_PARTICLES = 120;
-  const MAX_PARTICLES = 200;
   const GLOBAL_MAX_SCALE = 2.5; // The absolute maximum size a star can reach
   // CONNECTION_DISTANCE removed in favor of dynamic calculation
   
@@ -195,7 +204,7 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
     };
 
     const setCanvasSize = () => {
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const dpr = Math.min(Math.max(1, window.devicePixelRatio || 1), MAX_PARTICLE_CANVAS_DPR);
       const rect = canvas.getBoundingClientRect();
       const cssW = Math.max(1, Math.floor(rect.width));
       const cssH = Math.max(1, Math.floor(rect.height));
@@ -217,29 +226,52 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
       }
     };
 
+    const updateOccluders = () => {
+      occluderRectsRef.current = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-particle-occluder]"),
+      )
+        .map((element) => element.getBoundingClientRect())
+        .filter((rect) => rect.width > 0 && rect.height > 0)
+        .map((rect) => ({
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+        }));
+    };
+
+    const isOccluded = (x: number, y: number) =>
+      occluderRectsRef.current.some(
+        (rect) => x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom,
+      );
+
     setCanvasSize();
+    updateOccluders();
+    const initialTargets = getParticleTargets(sizeRef.current.w, sizeRef.current.h);
     
     // Initial population
     if (particlesRef.current.length === 0) {
       particlesRef.current = Array.from(
-        { length: MIN_PARTICLES + Math.floor(Math.random() * (MAX_PARTICLES - MIN_PARTICLES)) },
+        { length: initialTargets.min + Math.floor(Math.random() * (initialTargets.max - initialTargets.min)) },
         () => createParticle(sizeRef.current.w, sizeRef.current.h, true),
       );
     }
 
     const handleResize = () => {
       setCanvasSize();
+      updateOccluders();
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
     };
 
-    window.addEventListener("resize", handleResize);
-    window.addEventListener("mousemove", handleMouseMove);
-
     const animate = () => {
+      animationFrameRef.current = null;
+      if (!isDocumentVisibleRef.current) return;
+
       const { w, h } = sizeRef.current;
+      const targets = getParticleTargets(w, h);
 
       ctx.clearRect(0, 0, w, h);
 
@@ -249,10 +281,10 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
 
       // Spawn new particles
       const currentCount = particlesRef.current.length;
-      if (currentCount < MIN_PARTICLES) {
+      if (currentCount < targets.min) {
         // Force spawn if below min
         particlesRef.current.push(createParticle(w, h));
-      } else if (currentCount < MAX_PARTICLES) {
+      } else if (currentCount < targets.max) {
         // Chance to spawn
         if (Math.random() < 0.05) { // Adjust spawn rate
            particlesRef.current.push(createParticle(w, h));
@@ -319,30 +351,34 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
         // Draw Star
         // Use rgba for opacity control
         const colorString = `rgba(${Math.round(p.color.r)}, ${Math.round(p.color.g)}, ${Math.round(p.color.b)}, ${p.opacity})`;
+        const particleOccluded = isOccluded(p.x, p.y);
         
         // Optimization: Only apply shadowBlur (glow) to larger stars to save performance
         const isLarge = p.currentSize > 1.5;
         
-        if (isLarge) {
+        if (isLarge && !particleOccluded) {
           ctx.shadowBlur = p.glow * p.opacity;
           ctx.shadowColor = colorString;
         } else {
           ctx.shadowBlur = 0;
         }
-        
-        ctx.fillStyle = colorString;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, Math.max(0, p.currentSize), 0, Math.PI * 2);
-        ctx.fill();
+
+        if (!particleOccluded) {
+          ctx.fillStyle = colorString;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, Math.max(0, p.currentSize), 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         // Draw Connections
         // Optimization: Check connections only if particle is visible enough
-        if (p.opacity < 0.1) continue;
+        if (p.opacity < 0.1 || particleOccluded) continue;
 
         for (let j = i + 1; j < particles.length; j++) {
           const o = particles[j];
           // Optimization: Skip connection if other particle is too faint
           if (o.opacity < 0.1) continue;
+          if (isOccluded(o.x, o.y)) continue;
 
           const ddx = o.x - p.x;
           const ddy = o.y - p.y;
@@ -385,11 +421,25 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
+    const handleVisibilityChange = () => {
+      isDocumentVisibleRef.current = !document.hidden;
+      if (!document.hidden && !animationFrameRef.current) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("scroll", updateOccluders, { passive: true });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     animationFrameRef.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("scroll", updateOccluders);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (animationFrameRef.current)
         cancelAnimationFrame(animationFrameRef.current);
     };
