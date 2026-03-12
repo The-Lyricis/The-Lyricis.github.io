@@ -6,10 +6,6 @@ import {
   Send,
   CheckCircle,
   AlertCircle,
-  Github,
-  Linkedin,
-  Twitter,
-  Code2,
 } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
@@ -80,36 +76,21 @@ export function ContactSection() {
 
     setStatus("sending");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const subject = encodeURIComponent(formData.subject.trim());
+    const body = encodeURIComponent(
+      `Name: ${formData.name.trim()}\nEmail: ${formData.email.trim()}\n\n${formData.message.trim()}`,
+    );
 
-    // Mock success (90% success rate for demo)
-    const isSuccess = Math.random() > 0.1;
+    window.location.href = `mailto:jiliangy@chalmers.se?subject=${subject}&body=${body}`;
 
-    if (isSuccess) {
-      setStatus("success");
-      toast.success("Message sent successfully!", {
-        description: "I'll get back to you within 24 hours",
-      });
-      setTimeout(() => {
-        setStatus("idle");
-        setFormData({
-          name: "",
-          email: "",
-          subject: "",
-          message: "",
-        });
-        setErrors({});
-      }, 3000);
-    } else {
-      setStatus("error");
-      toast.error("Failed to send message", {
-        description: "Please try again or contact me directly",
-      });
-      setTimeout(() => {
-        setStatus("idle");
-      }, 3000);
-    }
+    setStatus("success");
+    toast.success("Email draft opened", {
+      description: "If nothing opened, use the direct email listed below.",
+    });
+
+    setTimeout(() => {
+      setStatus("idle");
+    }, 2000);
   };
 
   const handleChange = (
@@ -286,7 +267,7 @@ export function ContactSection() {
                 {status === "idle" && (
                   <>
                     <Send className="w-5 h-5" />
-                    Send Message
+                    Open Email Draft
                   </>
                 )}
                 {status === "sending" && (
@@ -301,13 +282,13 @@ export function ContactSection() {
                     >
                       <Send className="w-5 h-5" />
                     </motion.div>
-                    Sending...
+                    Opening...
                   </>
                 )}
                 {status === "success" && (
                   <>
                     <CheckCircle className="w-5 h-5" />
-                    Message Sent!
+                    Draft Ready
                   </>
                 )}
                 {status === "error" && (

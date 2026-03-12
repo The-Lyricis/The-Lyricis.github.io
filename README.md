@@ -1,43 +1,51 @@
-#  The Lyricis - React + Vite 个人主页
+# The Lyricis
 
-本项目是一个基于 React 和 Vite 构建的现代化网页，通过 Figma 导出 UI，并利用 GitHub Actions 实现全自动构建与部署。
+这是一个基于 React + Vite 构建的个人主页 / GitHub Pages 项目，内容聚焦于 Technical Artist、Game Developer 和 Graphics 方向的作品展示。
 
-##  开发工作流 (Workflow)
+## 技术栈
 
-为了保证设计与逻辑同步，遵循以下流程：
+- React 18
+- Vite 6
+- `motion/react` 动画
+- Radix UI 组件
+- Figma 导出的静态资源
+- GitHub Actions + GitHub Pages 部署
 
-### 1. 设计与 UI 同步 (Figma Side)
-* **视觉稿设计**：在 Figma 中进行视觉迭代。
-* **代码导出**：Figma导出的组件移动至 `src/` 目录。
-* **资源引用**：图片等资源通过 `vite.config.ts` 中的路径别名（Alias）进行管理。
+## 本地开发
 
-### 2. 功能逻辑开发 (Local Side)
-* **逻辑接入**：在本地编辑器（如 VS Code）中为 UI 组件挂载业务逻辑。
-* **本地预览**：
-  ```bash
-  npm install
-  npm run dev
-  ```
+```bash
+npm install
+npm run dev
+```
 
-### 3. 全自动化部署 (CI/CD)
-* **自动触发**：代码推送到 `master` 分支时，GitHub Actions 会自动启动。
-* **云端编译**：服务器自动运行 `npm run build`，产物输出至 `build/` 目录。
-* **权限配置**：确保 GitHub Settings 中开启了 `Read and write permissions`。
+默认开发端口在 `vite.config.ts` 中配置为 `3000`。
 
----
+## 构建
 
-##  核心目录结构
+```bash
+npm run build
+```
 
-- **.github/workflows/deploy.yml**：GitHub Actions 自动化部署脚本。
-- **src/assets/**：存放从 Figma 导出的图片资源。
-- **vite.config.ts**：Vite 配置文件，定义了构建目标和输出目录。
-- **index.html**：单页面应用的入口。
+构建产物输出到 `build/` 目录。
 
----
+## 自动部署
 
+项目通过 `.github/workflows/deploy.yml` 自动部署：
 
-##  未来计划
+- 推送到 `master` 分支后触发
+- 执行 `npm install` 和 `npm run build`
+- 上传 `build/` 产物到 GitHub Pages
 
-- [ ] 接入 **Supabase** 后端服务以支持动态数据。
+## 目录结构
 
+- `src/App.tsx`: 页面主入口
+- `src/components/`: 首页各 section 与交互组件
+- `src/assets/`: Figma 导出的图片资源
+- `src/supabaseClient.ts`: Supabase 客户端初始化
+- `vite.config.ts`: Vite 配置
 
+## 后续可做
+
+- 接入真实联系表单后端或 Supabase
+- 压缩大图资源，优化 GitHub Pages 首屏加载
+- 为项目详情补全独立页面或真实外链

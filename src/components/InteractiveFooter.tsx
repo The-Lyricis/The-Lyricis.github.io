@@ -1,51 +1,53 @@
-import React, { useState, useRef } from 'react';
-import { motion } from 'motion/react';
-import { Mail, Github, Linkedin } from 'lucide-react';
+import React, { useRef, useState } from "react";
+import { motion } from "motion/react";
+import { Github, Linkedin, Mail } from "lucide-react";
 
 export function InteractiveFooter() {
   const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const idCounterRef = useRef(0);
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only trigger ripple if clicking the background, not links
-    if ((e.target as HTMLElement).tagName === 'A' || (e.target as HTMLElement).closest('a')) {
-        return;
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (
+      (event.target as HTMLElement).tagName === "A" ||
+      (event.target as HTMLElement).closest("a")
+    ) {
+      return;
     }
 
     if (!containerRef.current) return;
-    
+
     const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
     const id = idCounterRef.current++;
-    setRipples(prev => [...prev, { x, y, id }]);
-    
+
+    setRipples((prev) => [...prev, { x, y, id }]);
+
     setTimeout(() => {
-      setRipples(prev => prev.filter(r => r.id !== id));
+      setRipples((prev) => prev.filter((ripple) => ripple.id !== id));
     }, 1000);
   };
 
   const socials = [
-    { 
-        icon: Mail, 
-        label: 'Email', 
-        color: '#64FFDA',
-        url: 'mailto:pigchick1623@gmail.com'
+    {
+      icon: Mail,
+      label: "Email",
+      color: "#64FFDA",
+      url: "mailto:pigchick1623@gmail.com",
     },
-    { 
-        icon: Github, 
-        label: 'GitHub', 
-        color: '#4A9EFF',
-        url: 'https://github.com/The-Lyricis/'
+    {
+      icon: Github,
+      label: "GitHub",
+      color: "#4A9EFF",
+      url: "https://github.com/The-Lyricis/",
     },
-    { 
-        icon: Linkedin, 
-        label: 'LinkedIn', 
-        color: '#FF6B6B',
-        url: 'https://www.linkedin.com/feed/?trk=guest_homepage-basic_google-one-tap-submit'
-    }
+    {
+      icon: Linkedin,
+      label: "LinkedIn",
+      color: "#FF6B6B",
+      url: "https://www.linkedin.com/feed/?trk=guest_homepage-basic_google-one-tap-submit",
+    },
   ];
 
   return (
@@ -53,49 +55,41 @@ export function InteractiveFooter() {
       ref={containerRef}
       onClick={handleClick}
       className="relative px-8 py-12 overflow-hidden cursor-pointer"
-      style={{ backgroundColor: '#020C1B' }} // Deep dark background
+      style={{ backgroundColor: "#020C1B" }}
     >
-      {/* Ripple effects */}
-      {ripples.map(ripple => (
+      {ripples.map((ripple) => (
         <motion.div
           key={ripple.id}
           className="absolute rounded-full border-2 pointer-events-none"
           style={{
             left: ripple.x,
             top: ripple.y,
-            x: '-50%',
-            y: '-50%',
-            borderColor: '#64FFDA'
+            x: "-50%",
+            y: "-50%",
+            borderColor: "#64FFDA",
           }}
           initial={{ width: 0, height: 0, opacity: 1 }}
-          animate={{
-            width: 300,
-            height: 300,
-            opacity: 0
-          }}
-          transition={{ duration: 1, ease: 'easeOut' }}
+          animate={{ width: 300, height: 300, opacity: 0 }}
+          transition={{ duration: 1, ease: "easeOut" }}
         />
       ))}
 
       <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col justify-center h-full">
-        
-        {/* Social links */}
         <div className="flex justify-center gap-10 mb-8">
           {socials.map((social, index) => (
             <SocialIcon key={social.label} social={social} index={index} />
           ))}
         </div>
 
-        {/* Footer text */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
           className="text-sm font-mono tracking-wide"
-          style={{ color: '#8892B0' }}
+          style={{ color: "#8892B0" }}
         >
-          <p>© 2026 Jiliang Ye · Technical Artist & Game Developer</p>
+          <p>© 2026 Jiliang Ye • Technical Artist & Game Developer</p>
         </motion.div>
       </div>
     </div>
@@ -104,7 +98,7 @@ export function InteractiveFooter() {
 
 interface SocialIconProps {
   social: {
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
     label: string;
     color: string;
     url: string;
@@ -134,17 +128,16 @@ function SocialIcon({ social, index }: SocialIconProps) {
       <motion.div
         className="w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all bg-[#112240]"
         style={{
-          borderColor: isHovered ? social.color : 'rgba(230, 241, 255, 0.1)',
-          boxShadow: isHovered ? `0 0 30px ${social.color}40` : 'none'
+          borderColor: isHovered ? social.color : "rgba(230, 241, 255, 0.1)",
+          boxShadow: isHovered ? `0 0 30px ${social.color}40` : "none",
         }}
       >
         <Icon
           className="w-7 h-7 transition-colors duration-300"
-          style={{ color: isHovered ? social.color : '#8892B0' }}
+          style={{ color: isHovered ? social.color : "#8892B0" }}
         />
       </motion.div>
-      
-      {/* Label only visible on hover */}
+
       <motion.span
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 10 : -10 }}

@@ -47,7 +47,7 @@ export function Navigation() {
 
   const isNavVisible = !isScrolled || isMouseTop || isMobileMenuOpen;
 
-  const scrollToSection = (href: string, id: string) => {
+  const scrollToSection = (id: string) => {
     setActiveSection(id);
     setIsMobileMenuOpen(false);
     
@@ -109,7 +109,7 @@ export function Navigation() {
                 transition={{ delay: index * 0.1 }}
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollToSection(item.href, item.id);
+                  scrollToSection(item.id);
                 }}
                 className="relative text-sm tracking-wider transition-colors"
                 style={{
@@ -139,27 +139,6 @@ export function Navigation() {
                 )}
               </motion.a>
             ))}
-            
-            {/* Resume Button */}
-            <motion.a
-              href="#resume"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 border-2 rounded text-sm tracking-wider transition-all"
-              style={{
-                borderColor: '#64FFDA',
-                color: '#64FFDA',
-                backgroundColor: 'transparent'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(100, 255, 218, 0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              Resume
-            </motion.a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -200,7 +179,7 @@ export function Navigation() {
                     transition={{ delay: index * 0.1 }}
                     onClick={(e) => {
                       e.preventDefault();
-                      scrollToSection(item.href, item.id);
+                      scrollToSection(item.id);
                     }}
                     className="block text-lg tracking-wider transition-colors"
                     style={{
@@ -210,21 +189,6 @@ export function Navigation() {
                     {item.label}
                   </motion.a>
                 ))}
-                
-                <motion.a
-                  href="#resume"
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: navItems.length * 0.1 }}
-                  className="block px-6 py-3 border-2 rounded text-center tracking-wider transition-all"
-                  style={{
-                    borderColor: '#64FFDA',
-                    color: '#64FFDA',
-                    backgroundColor: 'transparent'
-                  }}
-                >
-                  Resume
-                </motion.a>
               </nav>
             </div>
           </motion.div>
