@@ -10,13 +10,13 @@ import {
   Shuffle,
   X,
 } from "lucide-react";
-import img2 from "figma:asset/510d0c71db35598b232560f09a4d46c569735d17.png";
-import img3 from "figma:asset/9cb12c39b95097e4153b36471a7928a2a3c7584c.png";
-import img5 from "figma:asset/aec850c9ae88cbc0c2fc0301ed11ccfa259fd346.png";
-import img6 from "figma:asset/b728911a0d5458658529c26097e89272475ef427.png";
-import christmasPsychoImg from "figma:asset/57c6cd618f6f0f604c4aa86adf1c0b301471bb48.png";
-import unselfImg from "figma:asset/3f8f58d9debae47e48daed17820b86a2b919a073.png";
-import vibrantImg from "figma:asset/3569637c7d42adbc57930f8d94a090c1b7990ed6.png";
+import img2 from "figma:asset/projects/shader-factory-cover.png";
+import img3 from "figma:asset/projects/ray-marching-renderer-cover.png";
+import img5 from "figma:asset/projects/hda-hex-terrain-cover.png";
+import img6 from "figma:asset/projects/gpu-particle-system-cover.png";
+import christmasPsychoImg from "figma:asset/projects/christmas-psycho-cover.png";
+import unselfImg from "figma:asset/projects/unself-cover.png";
+import vibrantImg from "figma:asset/projects/vibrant-cover.png";
 
 interface Project {
   id: number;

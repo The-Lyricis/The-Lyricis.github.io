@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, LayoutGroup } from 'motion/react';
 import { Briefcase, GraduationCap, Rocket, Circle, Cpu } from 'lucide-react';
 
-import chalmersLogo from 'figma:asset/34fe8555018b14823bdfd4b6b2f23b1c12a5322a.png';
-import jilinLogo from 'figma:asset/ffbde524f2ff9a8f826cabfac3182808795098be.png';
-import seasunImage from 'figma:asset/50b67e8164f643d7f867674841bd62afded14e0a.png';
-import funplusImage from 'figma:asset/a79c1baff43749d139c783987ee88a65d69a2fc4.png';
-import funplusInternImage from 'figma:asset/00e43bc57c0e1d586e9559a450154d8c5d12a233.png';
+import chalmersLogo from 'figma:asset/experience/chalmers-logo.png';
+import jilinLogo from 'figma:asset/experience/jilin-university-logo.png';
+import seasunImage from 'figma:asset/experience/seasun-games-cover.png';
+import funplusImage from 'figma:asset/experience/funplus-central-engine-cover.png';
+import funplusInternImage from 'figma:asset/experience/funplus-beijing-intern-cover.png';
 
 interface TimelineItem {
   id: string;

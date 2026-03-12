@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import cityImage from "figma:asset/bcd66bf4efb1bc82802197a0c435ac1e93db09df.png";
-import streetImage from "figma:asset/5ddef6520438cbf486174d0ce151df5193f97ae1.png";
-import glassImage from "figma:asset/437cba162ddef1914666f1b1e897b20de657cee1.png";
-import beachImage from "figma:asset/f120eb1bdb8f96744a86d1e3bc08d114e3d9744a.png";
-import nightVillageImage from "figma:asset/3ac696634b6322ae652fc72b86375ebf6ba72123.png";
+import cityImage from "figma:asset/manifesto/urban-atmosphere.png";
+import streetImage from "figma:asset/manifesto/street-moments.png";
+import glassImage from "figma:asset/manifesto/light-and-structure.png";
+import beachImage from "figma:asset/manifesto/perspective-beach.png";
+import nightVillageImage from "figma:asset/manifesto/nightscape-village.png";
 
 export function ManifestoSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
