@@ -123,12 +123,48 @@ interface ParticleFieldProps {
 }
 
 const MAX_PARTICLE_CANVAS_DPR = 1.5;
+const PARTICLE_SPAWN_ATTEMPTS = 24;
 
-function getParticleTargets(width: number, height: number) {
-  const areaFactor = Math.max(1, Math.floor((width * height) / 170000));
+type Rect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+function getParticleTargets(area: number) {
+  const areaFactor = Math.max(1, Math.floor(area / 170000));
   const min = Math.max(48, Math.min(120, areaFactor * 15));
   const max = Math.max(min + 16, Math.min(180, min + 36));
   return { min, max };
+}
+
+function pointInRect(x: number, y: number, rect: Rect) {
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+
+function pointInOccluders(x: number, y: number, rects: Rect[]) {
+  return rects.some((rect) => pointInRect(x, y, rect));
+}
+
+function getVisibleArea(width: number, height: number, rects: Rect[]) {
+  const totalArea = width * height;
+  if (rects.length === 0) return totalArea;
+
+  const occludedArea = rects.reduce((sum, rect) => {
+    const clippedLeft = Math.max(0, rect.left);
+    const clippedTop = Math.max(0, rect.top);
+    const clippedRight = Math.min(width, rect.right);
+    const clippedBottom = Math.min(height, rect.bottom);
+
+    if (clippedRight <= clippedLeft || clippedBottom <= clippedTop) {
+      return sum;
+    }
+
+    return sum + (clippedRight - clippedLeft) * (clippedBottom - clippedTop);
+  }, 0);
+
+  return Math.max(totalArea * 0.18, totalArea - occludedArea);
 }
 
 export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
@@ -137,8 +173,11 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
   const mouseRef = useRef({ x: -9999, y: -9999 });
   const animationFrameRef = useRef<number | null>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
-  const occluderRectsRef = useRef<Array<{ left: number; top: number; right: number; bottom: number }>>([]);
+  const occluderRectsRef = useRef<Rect[]>([]);
   const isDocumentVisibleRef = useRef(typeof document === "undefined" ? true : !document.hidden);
+  const smoothedVisibleAreaRef = useRef(0);
+  const isResizingRef = useRef(false);
+  const resizeTimerRef = useRef<number | null>(null);
 
   // Constants for behavior
   const GLOBAL_MAX_SCALE = 2.5; // The absolute maximum size a star can reach
@@ -158,12 +197,31 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const findVisibleSpawnPoint = (w: number, h: number) => {
+      const rects = occluderRectsRef.current;
+
+      for (let attempt = 0; attempt < PARTICLE_SPAWN_ATTEMPTS; attempt += 1) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+
+        if (!pointInOccluders(x, y, rects)) {
+          return { x, y };
+        }
+      }
+
+      return {
+        x: Math.random() * w,
+        y: Math.random() * h,
+      };
+    };
+
     const createParticle = (
       w: number,
       h: number,
       isInitial: boolean = false
     ): Particle => {
       const initialColor = getRandomColorFromTheme(themeIndex);
+      const spawn = findVisibleSpawnPoint(w, h);
       
       // Exponential distribution for life span
       // Most particles will have a life around 400-600 frames
@@ -186,8 +244,8 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
       const connectDist = 60 + Math.pow(baseSize, 2) * 25;
 
       return {
-        x: Math.random() * w,
-        y: Math.random() * h,
+        x: spawn.x,
+        y: spawn.y,
         vx: (Math.random() - 0.5) * 0.3,
         vy: (Math.random() - 0.5) * 0.3,
         baseSize,
@@ -240,14 +298,18 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
         }));
     };
 
-    const isOccluded = (x: number, y: number) =>
-      occluderRectsRef.current.some(
-        (rect) => x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom,
-      );
+    const isOccluded = (x: number, y: number) => pointInOccluders(x, y, occluderRectsRef.current);
 
     setCanvasSize();
     updateOccluders();
-    const initialTargets = getParticleTargets(sizeRef.current.w, sizeRef.current.h);
+    smoothedVisibleAreaRef.current = getVisibleArea(
+      sizeRef.current.w,
+      sizeRef.current.h,
+      occluderRectsRef.current,
+    );
+    const initialTargets = getParticleTargets(
+      smoothedVisibleAreaRef.current,
+    );
     
     // Initial population
     if (particlesRef.current.length === 0) {
@@ -260,6 +322,21 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
     const handleResize = () => {
       setCanvasSize();
       updateOccluders();
+      isResizingRef.current = true;
+      if (resizeTimerRef.current) {
+        window.clearTimeout(resizeTimerRef.current);
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      resizeTimerRef.current = window.setTimeout(() => {
+        isResizingRef.current = false;
+        resizeTimerRef.current = null;
+        if (isDocumentVisibleRef.current && !animationFrameRef.current) {
+          animationFrameRef.current = requestAnimationFrame(animate);
+        }
+      }, 160);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -268,10 +345,17 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
 
     const animate = () => {
       animationFrameRef.current = null;
-      if (!isDocumentVisibleRef.current) return;
+      if (!isDocumentVisibleRef.current || isResizingRef.current) return;
 
       const { w, h } = sizeRef.current;
-      const targets = getParticleTargets(w, h);
+      const desiredVisibleArea = getVisibleArea(w, h, occluderRectsRef.current);
+      if (smoothedVisibleAreaRef.current <= 0) {
+        smoothedVisibleAreaRef.current = desiredVisibleArea;
+      } else {
+        smoothedVisibleAreaRef.current +=
+          (desiredVisibleArea - smoothedVisibleAreaRef.current) * 0.12;
+      }
+      const targets = getParticleTargets(smoothedVisibleAreaRef.current);
 
       ctx.clearRect(0, 0, w, h);
 
@@ -279,10 +363,22 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
       // Remove dead particles
       particlesRef.current = particlesRef.current.filter(p => p.age < p.maxAge);
 
+      if (particlesRef.current.length > targets.max) {
+        const overflow = particlesRef.current.length - targets.max;
+        const ranked = [...particlesRef.current].sort((a, b) => {
+          const aOccluded = isOccluded(a.x, a.y) ? 1 : 0;
+          const bOccluded = isOccluded(b.x, b.y) ? 1 : 0;
+          if (aOccluded !== bOccluded) return bOccluded - aOccluded;
+          return b.age - a.age;
+        });
+        const toRemove = new Set(ranked.slice(0, overflow));
+        particlesRef.current = particlesRef.current.filter((p) => !toRemove.has(p));
+      }
+
       // Spawn new particles
       const currentCount = particlesRef.current.length;
       if (currentCount < targets.min) {
-        // Force spawn if below min
+        // Fill deficits gradually to avoid scroll-triggered bursts
         particlesRef.current.push(createParticle(w, h));
       } else if (currentCount < targets.max) {
         // Chance to spawn
@@ -292,6 +388,7 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
       }
 
       const particles = particlesRef.current;
+      const visibleParticles: Particle[] = [];
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
@@ -348,10 +445,14 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
           p.vy = (p.vy / speed) * maxSpeed;
         }
 
+        const particleOccluded = isOccluded(p.x, p.y);
+        if (particleOccluded) {
+          p.age += 1.5;
+        }
+
         // Draw Star
         // Use rgba for opacity control
         const colorString = `rgba(${Math.round(p.color.r)}, ${Math.round(p.color.g)}, ${Math.round(p.color.b)}, ${p.opacity})`;
-        const particleOccluded = isOccluded(p.x, p.y);
         
         // Optimization: Only apply shadowBlur (glow) to larger stars to save performance
         const isLarge = p.currentSize > 1.5;
@@ -372,13 +473,18 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
 
         // Draw Connections
         // Optimization: Check connections only if particle is visible enough
-        if (p.opacity < 0.1 || particleOccluded) continue;
+        if (!particleOccluded && p.opacity >= 0.1) {
+          visibleParticles.push(p);
+        }
+      }
 
-        for (let j = i + 1; j < particles.length; j++) {
-          const o = particles[j];
-          // Optimization: Skip connection if other particle is too faint
-          if (o.opacity < 0.1) continue;
-          if (isOccluded(o.x, o.y)) continue;
+      ctx.shadowBlur = 0;
+
+      for (let i = 0; i < visibleParticles.length; i++) {
+        const p = visibleParticles[i];
+
+        for (let j = i + 1; j < visibleParticles.length; j++) {
+          const o = visibleParticles[j];
 
           const ddx = o.x - p.x;
           const ddy = o.y - p.y;
@@ -440,6 +546,9 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("scroll", updateOccluders);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (resizeTimerRef.current) {
+        window.clearTimeout(resizeTimerRef.current);
+      }
       if (animationFrameRef.current)
         cancelAnimationFrame(animationFrameRef.current);
     };

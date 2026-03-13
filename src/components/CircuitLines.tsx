@@ -1735,10 +1735,12 @@ export function CircuitLines({
   const [isDocumentVisible, setIsDocumentVisible] = useState(
     typeof document === "undefined" ? true : !document.hidden,
   );
+  const [isResizing, setIsResizing] = useState(false);
   const circuitsRef = useRef<Circuit[]>([]);
   const nextIdRef = useRef(0);
   const removalTimersRef = useRef<Map<string, number>>(new Map());
   const spawnLoopTimerRef = useRef<number | null>(null);
+  const resizeTimerRef = useRef<number | null>(null);
 
   const layout = useMemo(
     () => buildLayout(size.width, size.height, titleBounds),
@@ -1767,7 +1769,7 @@ export function CircuitLines({
     () => getLineTargets(size.width, size.height),
     [size.width, size.height],
   );
-  const isRunning = active && isDocumentVisible;
+  const isRunning = active && isDocumentVisible && !isResizing;
   const circuitRenderPointMap = useMemo(
     () => buildCircuitRenderPointMap(circuits, layout),
     [circuits, layout],
@@ -1809,6 +1811,27 @@ export function CircuitLines({
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", updateSize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResizeStart = () => {
+      setIsResizing(true);
+      if (resizeTimerRef.current) {
+        window.clearTimeout(resizeTimerRef.current);
+      }
+      resizeTimerRef.current = window.setTimeout(() => {
+        setIsResizing(false);
+        resizeTimerRef.current = null;
+      }, 160);
+    };
+
+    window.addEventListener("resize", handleResizeStart);
+    return () => {
+      window.removeEventListener("resize", handleResizeStart);
+      if (resizeTimerRef.current) {
+        window.clearTimeout(resizeTimerRef.current);
+      }
     };
   }, []);
 

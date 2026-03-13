@@ -21,6 +21,7 @@ type TitleBounds = {
 };
 
 export function Hero() {
+  const trackedLetterIndices = [8, 16] as const;
   const [letterStates, setLetterStates] = useState<LetterState[]>([
     {
       letter: "J",
@@ -54,6 +55,7 @@ export function Hero() {
   const frameRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const nextBreakIndexRef = useRef(0);
+  const measureFrameRef = useRef<number | null>(null);
   const name = "Hi, I'm Jiliang Ye";
   const normalLetterStyle = {
     color: "#E6F1FF",
@@ -63,9 +65,6 @@ export function Hero() {
   const updatePositions = useCallback(() => {
     if (!titleRef.current) return;
 
-    const spans = titleRef.current.querySelectorAll<HTMLSpanElement>(
-      "span[data-char-index]",
-    );
     const titleRect = titleRef.current.getBoundingClientRect();
     const heroRect = heroRef.current?.getBoundingClientRect();
     const cornerRects = frameRef.current
@@ -73,13 +72,27 @@ export function Hero() {
           frameRef.current.querySelectorAll<HTMLDivElement>("[data-title-corner]"),
         ).map((corner) => corner.getBoundingClientRect())
       : [];
-    const entries = Array.from(spans).map((span) => {
-      const idx = Number(span.dataset.charIndex);
-      const rect = span.getBoundingClientRect();
-      return { idx, rect };
-    });
+    const entries = trackedLetterIndices
+      .map((idx) => {
+        const span = titleRef.current?.querySelector<HTMLSpanElement>(
+          `span[data-char-index="${idx}"]`,
+        );
+        if (!span) return null;
 
-    const maxHeight = Math.max(...entries.map((entry) => entry.rect.height));
+        return {
+          idx,
+          rect: span.getBoundingClientRect(),
+        };
+      })
+      .filter(
+        (
+          entry,
+        ): entry is {
+          idx: (typeof trackedLetterIndices)[number];
+          rect: DOMRect;
+        } => entry !== null,
+      );
+
     const baselineY = titleRect.height * 0.78;
     const positions: typeof letterPositions = {};
 
@@ -89,7 +102,7 @@ export function Hero() {
         y: rect.top + rect.height / 2 - titleRect.top,
         baselineY,
         height: rect.height,
-        lineHeight: maxHeight,
+        lineHeight: titleRect.height,
       };
     });
 
@@ -117,14 +130,30 @@ export function Hero() {
     }
   }, []);
 
+  const schedulePositionUpdate = useCallback(() => {
+    if (measureFrameRef.current) {
+      window.cancelAnimationFrame(measureFrameRef.current);
+    }
+
+    measureFrameRef.current = window.requestAnimationFrame(() => {
+      measureFrameRef.current = null;
+      updatePositions();
+    });
+  }, [updatePositions]);
+
   useEffect(() => {
     if (!titleRef.current) return;
 
-    updatePositions();
-    window.addEventListener("resize", updatePositions);
+    schedulePositionUpdate();
+    window.addEventListener("resize", schedulePositionUpdate);
 
-    return () => window.removeEventListener("resize", updatePositions);
-  }, [updatePositions]);
+    return () => {
+      window.removeEventListener("resize", schedulePositionUpdate);
+      if (measureFrameRef.current) {
+        window.cancelAnimationFrame(measureFrameRef.current);
+      }
+    };
+  }, [schedulePositionUpdate]);
 
   useEffect(() => {
     if (!heroRef.current) return;
@@ -232,7 +261,7 @@ export function Hero() {
           ref={frameRef}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          onAnimationComplete={updatePositions}
+          onAnimationComplete={schedulePositionUpdate}
           transition={{ duration: 1 }}
           className="relative inline-block"
         >

@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { WeldingSparks } from "./shaders/WeldingSparks";
 
 interface RobotWithLadderProps {
   letter: string;
@@ -62,7 +61,7 @@ function tweenState(
   });
 }
 
-/** 2D 备用焊接火花：直接挂在枪头上，保证“必定显示” */
+/** 2D 澶囩敤鐒婃帴鐏姳锛氱洿鎺ユ寕鍦ㄦ灙澶翠笂锛屼繚璇佲€滃繀瀹氭樉绀衡€?*/
 function SimpleWeldSparks({ active }: { active: boolean }) {
   if (!active) return null;
 
@@ -109,7 +108,7 @@ function SimpleWeldSparks({ active }: { active: boolean }) {
   );
 }
 
-/** 电焊机械臂：两段臂 + 关节 + 枪头，枪头自带火花挂点 */
+/** 鐢电剨鏈烘鑷傦細涓ゆ鑷?+ 鍏宠妭 + 鏋ご锛屾灙澶磋嚜甯︾伀鑺辨寕鐐?*/
 function WeldingArm({
   isWelding,
   torchTipRef,
@@ -137,7 +136,7 @@ function WeldingArm({
         repeat: isWelding ? Infinity : 0,
       }}
     >
-      {/* 第一段臂 */}
+      {/* 绗竴娈佃噦 */}
       <div
         className="absolute"
         style={{
@@ -149,7 +148,7 @@ function WeldingArm({
           boxShadow: "0 0 6px rgba(100,255,218,0.25)",
         }}
       />
-      {/* 关节 1 */}
+      {/* 鍏宠妭 1 */}
       <div
         className="absolute"
         style={{
@@ -163,7 +162,7 @@ function WeldingArm({
         }}
       />
 
-      {/* 第二段臂 */}
+      {/* 绗簩娈佃噦 */}
       <motion.div
         className="absolute"
         style={{
@@ -186,7 +185,7 @@ function WeldingArm({
         }}
       />
 
-      {/* 关节 2 */}
+      {/* 鍏宠妭 2 */}
       <div
         className="absolute"
         style={{
@@ -200,7 +199,7 @@ function WeldingArm({
         }}
       />
 
-      {/* 枪头 + 发光 + 火花挂点 */}
+      {/* 鏋ご + 鍙戝厜 + 鐏姳鎸傜偣 */}
       <div
         ref={torchTipRef}
         className="absolute"
@@ -217,7 +216,7 @@ function WeldingArm({
           border: "1px solid rgba(255,255,255,0.18)",
         }}
       >
-        {/* 枪嘴 */}
+        {/* 鏋槾 */}
         <div
           className="absolute"
           style={{
@@ -232,7 +231,7 @@ function WeldingArm({
               : "0 0 6px rgba(255,215,0,0.4)",
           }}
         />
-        {/* 2D 火花（保证显示） */}
+        {/* 2D 鐏姳锛堜繚璇佹樉绀猴級 */}
         <SimpleWeldSparks active={isWelding} />
       </div>
     </motion.div>
@@ -246,20 +245,11 @@ export function RobotWithLadder({
   onRepairComplete,
 }: RobotWithLadderProps) {
   const [phase, setPhase] = useState<Phase>("arriving");
-  const [scaffoldHeight, setScaffoldHeight] = useState(0);
   const [robotY, setRobotY] = useState(0);
-
-  // 焊枪枪头 DOM：用于（可选）给 WeldingSparks shader 提供更稳的坐标
   const torchTipRef = useRef<HTMLDivElement>(null);
-  const [torchLocal, setTorchLocal] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
 
-  // Calculate heights based on lineHeight
   const lineH = position.lineHeight || position.height;
   const groundY = 0;
-  const scaffoldTargetHeight = lineH * 0.425;
   const weldY = -lineH * 0.4;
 
   useEffect(() => {
@@ -268,7 +258,6 @@ export function RobotWithLadder({
 
     if (!isRepairing) {
       setPhase("arriving");
-      setScaffoldHeight(0);
       setRobotY(0);
       return () => {
         cancelled = true;
@@ -279,7 +268,6 @@ export function RobotWithLadder({
       setPhase("arriving");
       await sleep(500);
 
-      // J / Y sequence
       setPhase("welding");
       await sleep(2500);
 
@@ -300,37 +288,7 @@ export function RobotWithLadder({
     return () => {
       cancelled = true;
     };
-  }, [
-    isRepairing,
-    letter,
-    onRepairComplete,
-    scaffoldTargetHeight,
-  ]);
-
-  // 可选：如果你的 WeldingSparks shader 仍然想用，这里给它更稳的“局部坐标”
-  useEffect(() => {
-    if (phase !== "welding") {
-      setTorchLocal(null);
-      return;
-    }
-
-    let raf = 0;
-    const tick = () => {
-      const tip = torchTipRef.current;
-      if (tip) {
-        // tip 的 offsetParent 就是 Robot 容器内部，取 offsetLeft/Top 更稳定
-        setTorchLocal({
-          x: tip.offsetLeft + tip.offsetWidth,
-          y: tip.offsetTop + tip.offsetHeight / 2,
-        });
-      }
-      raf = requestAnimationFrame(tick);
-    };
-
-    tick();
-    return () => cancelAnimationFrame(raf);
-  }, [phase]);
-
+  }, [isRepairing, letter, onRepairComplete]);
   if (!isRepairing && phase !== "hiding") return null;
 
   const configMap: Record<
@@ -464,7 +422,7 @@ export function RobotWithLadder({
                           repeat: isWelding ? Infinity : 0,
                         }}
                       >
-                        {/* 低层：焊接手（被身体遮挡） */}
+                        {/* 浣庡眰锛氱剨鎺ユ墜锛堣韬綋閬尅锛?*/}
                         <div
                           className="absolute inset-0"
                           style={{ zIndex: 5 }}
@@ -475,12 +433,12 @@ export function RobotWithLadder({
                           />
                         </div>
 
-                        {/* 高层：头+身（遮挡焊接手） */}
+                        {/* 楂樺眰锛氬ご+韬紙閬尅鐒婃帴鎵嬶級 */}
                         <div
                           className="relative"
                           style={{ zIndex: 10 }}
                         >
-                          {/* 背面头部 */}
+                          {/* 鑳岄潰澶撮儴 */}
                           <div
                             className="w-12 h-10 rounded-t-lg border-2 relative"
                             style={{
@@ -507,7 +465,7 @@ export function RobotWithLadder({
                             </div>
                           </div>
 
-                          {/* 背面身体 */}
+                          {/* 鑳岄潰韬綋 */}
                           <div
                             className="w-12 h-10 border-2 border-t-0 relative"
                             style={{
@@ -515,7 +473,7 @@ export function RobotWithLadder({
                               borderColor: "#64FFDA",
                             }}
                           >
-                            {/* 电源模块 */}
+                            {/* 鐢垫簮妯″潡 */}
                             <div
                               className="w-8 h-6 mx-auto mt-1 rounded border-2 relative"
                               style={{
@@ -612,7 +570,7 @@ export function RobotWithLadder({
                           />
                         </div>
 
-                        {/* 前视也换成机械电焊手（比你之前那根细线更像“工具”） */}
+                        {/* 鍓嶈涔熸崲鎴愭満姊扮數鐒婃墜锛堟瘮浣犱箣鍓嶉偅鏍圭粏绾挎洿鍍忊€滃伐鍏封€濓級 */}
                         <WeldingArm
                           isWelding={isWelding}
                           torchTipRef={torchTipRef}
@@ -630,19 +588,13 @@ export function RobotWithLadder({
               </div>
             </motion.div>
 
-            {/* Welding Sparks Shader（可选保留）：如果你的 WebGL shader 没显示，至少上面的 2D 火花一定会显示 */}
-            {isWelding && torchLocal && (
-              <div className="absolute inset-0 pointer-events-none">
-                <WeldingSparks
-                  x={torchLocal.x}
-                  y={torchLocal.y}
-                  isActive
-                />
-              </div>
-            )}
+            {/* Welding Sparks Shader锛堝彲閫変繚鐣欙級锛氬鏋滀綘鐨?WebGL shader 娌℃樉绀猴紝鑷冲皯涓婇潰鐨?2D 鐏姳涓€瀹氫細鏄剧ず */}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
+
+
+
