@@ -670,6 +670,73 @@ type RenderStrokeMetrics = {
   reachScale?: number;
 };
 
+class MinScoreQueue<T extends { score: number }> {
+  private heap: T[] = [];
+
+  get size() {
+    return this.heap.length;
+  }
+
+  push(value: T) {
+    this.heap.push(value);
+    this.bubbleUp(this.heap.length - 1);
+  }
+
+  pop() {
+    if (this.heap.length === 0) return undefined;
+    if (this.heap.length === 1) return this.heap.pop();
+
+    const min = this.heap[0];
+    const tail = this.heap.pop();
+    if (!tail) return min;
+
+    this.heap[0] = tail;
+    this.bubbleDown(0);
+    return min;
+  }
+
+  private bubbleUp(index: number) {
+    let current = index;
+
+    while (current > 0) {
+      const parent = Math.floor((current - 1) / 2);
+      if (this.heap[parent].score <= this.heap[current].score) break;
+
+      [this.heap[parent], this.heap[current]] = [this.heap[current], this.heap[parent]];
+      current = parent;
+    }
+  }
+
+  private bubbleDown(index: number) {
+    let current = index;
+
+    while (true) {
+      const left = current * 2 + 1;
+      const right = left + 1;
+      let smallest = current;
+
+      if (
+        left < this.heap.length &&
+        this.heap[left].score < this.heap[smallest].score
+      ) {
+        smallest = left;
+      }
+
+      if (
+        right < this.heap.length &&
+        this.heap[right].score < this.heap[smallest].score
+      ) {
+        smallest = right;
+      }
+
+      if (smallest === current) break;
+
+      [this.heap[current], this.heap[smallest]] = [this.heap[smallest], this.heap[current]];
+      current = smallest;
+    }
+  }
+}
+
 function buildPolylineMetrics(points: Pt[]): PolylineMetrics | null {
   if (points.length < 2) return null;
 
@@ -986,26 +1053,31 @@ function drawCircuitStroke(
   const headPoints = buildSubPath(metrics, headStartFrac, moveProgress);
   if (!headPoints) return;
 
-  const headStart = headPoints[0];
-  const headEnd = headPoints[headPoints.length - 1];
-  const gradient = ctx.createLinearGradient(headStart.x, headStart.y, headEnd.x, headEnd.y);
   if (circuit.kind === "bus") {
+    const headStart = headPoints[0];
+    const headEnd = headPoints[headPoints.length - 1];
+    const gradient = ctx.createLinearGradient(headStart.x, headStart.y, headEnd.x, headEnd.y);
     gradient.addColorStop(0, "rgba(76, 173, 156, 0)");
     gradient.addColorStop(0.55, "rgba(92, 196, 178, 0.28)");
     gradient.addColorStop(1, "rgba(171, 245, 231, 0.82)");
-  } else {
-    gradient.addColorStop(0, "rgba(69, 151, 139, 0)");
-    gradient.addColorStop(0.55, "rgba(86, 181, 166, 0.22)");
-    gradient.addColorStop(1, "rgba(156, 228, 214, 0.7)");
+    strokePolyline(
+      ctx,
+      headPoints,
+      circuit.strokeWidth + 0.55,
+      gradient,
+      0.9 - fadeProgress * 0.82,
+      5,
+    );
+    return;
   }
 
   strokePolyline(
     ctx,
     headPoints,
-    circuit.strokeWidth + (circuit.kind === "bus" ? 0.55 : 0.22),
-    gradient,
-    0.9 - fadeProgress * 0.82,
-    circuit.kind === "bus" ? 5 : 3,
+    circuit.strokeWidth + 0.18,
+    "#8FD8CB",
+    0.62 - fadeProgress * 0.48,
+    2,
   );
 }
 
@@ -1088,18 +1160,6 @@ function reconstructPath(
   return path.reverse();
 }
 
-function popLowestScore<T extends { score: number }>(queue: T[]) {
-  let bestIndex = 0;
-
-  for (let i = 1; i < queue.length; i += 1) {
-    if (queue[i].score < queue[bestIndex].score) {
-      bestIndex = i;
-    }
-  }
-
-  return queue.splice(bestIndex, 1)[0];
-}
-
 function findRoute(
   start: Anchor,
   end: Anchor,
@@ -1108,14 +1168,14 @@ function findRoute(
   layout: Layout,
   options: RouteOptions,
 ) {
-  const queue: Array<{
+  const queue = new MinScoreQueue<{
     key: string;
     point: GridPt;
     dir: number;
     cost: number;
     score: number;
     turns: number;
-  }> = [];
+  }>();
   const bestCost = new Map<string, number>();
   const parentMap = new Map<string, string | null>();
   const stateMap = new Map<string, { point: GridPt; dir: number }>();
@@ -1135,8 +1195,8 @@ function findRoute(
 
   let expanded = 0;
 
-  while (queue.length > 0 && expanded < 9000) {
-    const current = popLowestScore(queue);
+  while (queue.size > 0 && expanded < 9000) {
+    const current = queue.pop();
     if (!current) break;
     expanded += 1;
 
@@ -1731,12 +1791,12 @@ export function CircuitLines({
     width: typeof window !== "undefined" ? window.innerWidth : 1280,
     height: typeof window !== "undefined" ? window.innerHeight : 720,
   }));
-  const [circuits, setCircuits] = useState<Circuit[]>([]);
   const [isDocumentVisible, setIsDocumentVisible] = useState(
     typeof document === "undefined" ? true : !document.hidden,
   );
   const [isResizing, setIsResizing] = useState(false);
   const circuitsRef = useRef<Circuit[]>([]);
+  const circuitRenderMetricsRef = useRef<Map<string, RenderStrokeMetrics[]>>(new Map());
   const nextIdRef = useRef(0);
   const removalTimersRef = useRef<Map<string, number>>(new Map());
   const spawnLoopTimerRef = useRef<number | null>(null);
@@ -1770,13 +1830,13 @@ export function CircuitLines({
     [size.width, size.height],
   );
   const isRunning = active && isDocumentVisible && !isResizing;
-  const circuitRenderPointMap = useMemo(
-    () => buildCircuitRenderPointMap(circuits, layout),
-    [circuits, layout],
-  );
-  const circuitRenderMetricsMap = useMemo(
-    () => buildCircuitRenderMetricsMap(circuitRenderPointMap),
-    [circuitRenderPointMap],
+  const syncRenderMetrics = useCallback(
+    (nextCircuits: Circuit[]) => {
+      circuitRenderMetricsRef.current = buildCircuitRenderMetricsMap(
+        buildCircuitRenderPointMap(nextCircuits, layout),
+      );
+    },
+    [layout],
   );
 
   useEffect(() => {
@@ -1863,9 +1923,9 @@ export function CircuitLines({
 
       const next = circuitsRef.current.filter((circuit) => !idsToRemove.has(circuit.id));
       circuitsRef.current = next;
-      setCircuits(next);
+      syncRenderMetrics(next);
     },
-    [],
+    [syncRenderMetrics],
   );
 
   const spawnCircuit = useCallback(
@@ -1910,7 +1970,7 @@ export function CircuitLines({
       nextIdRef.current += 1;
       const next = [...circuitsRef.current, fallbackCircuit];
       circuitsRef.current = next;
-      setCircuits(next);
+      syncRenderMetrics(next);
 
       if (!fallbackCircuit.busJoin) {
         const removalTimer = window.setTimeout(() => {
@@ -1921,20 +1981,20 @@ export function CircuitLines({
       }
       return true;
     },
-    [edgeAnchors, innerAnchors, layout, removeCircuit, ringAnchors],
+    [edgeAnchors, innerAnchors, layout, removeCircuit, ringAnchors, syncRenderMetrics],
   );
 
   useEffect(() => {
     if (!isRunning) {
       clearTimers();
       circuitsRef.current = [];
-      setCircuits([]);
+      circuitRenderMetricsRef.current = new Map();
       return;
     }
 
     clearTimers();
     circuitsRef.current = [];
-    setCircuits([]);
+    circuitRenderMetricsRef.current = new Map();
 
     while (circuitsRef.current.length < lineTargets.initial) {
       const spawned = spawnCircuit(lineTargets.initial);
@@ -1948,16 +2008,6 @@ export function CircuitLines({
 
   useEffect(() => {
     if (!isRunning) return;
-    if (circuits.length >= lineTargets.min) return;
-
-    while (circuitsRef.current.length < lineTargets.min) {
-      const spawned = spawnCircuit(lineTargets.min);
-      if (!spawned) break;
-    }
-  }, [circuits.length, isRunning, lineTargets.min, spawnCircuit]);
-
-  useEffect(() => {
-    if (!isRunning) return;
     let cancelled = false;
 
     const scheduleNextSpawn = () => {
@@ -1966,11 +2016,12 @@ export function CircuitLines({
         if (cancelled) return;
 
         const count = circuitsRef.current.length;
-        const shouldSpawn =
-          count < lineTargets.min ||
-          (count < lineTargets.max && Math.random() < 0.82);
-
-        if (shouldSpawn) {
+        if (count < lineTargets.min) {
+          while (circuitsRef.current.length < lineTargets.min) {
+            const spawned = spawnCircuit(lineTargets.min);
+            if (!spawned) break;
+          }
+        } else if (count < lineTargets.max && Math.random() < 0.82) {
           spawnCircuit(lineTargets.max);
         }
 
@@ -2012,8 +2063,8 @@ export function CircuitLines({
       const now = Date.now();
       context.clearRect(0, 0, width, height);
 
-      circuits.forEach((circuit) => {
-        const strokes = circuitRenderMetricsMap.get(circuit.id) || [];
+      circuitsRef.current.forEach((circuit) => {
+        const strokes = circuitRenderMetricsRef.current.get(circuit.id) || [];
         strokes.forEach((stroke) => {
           drawCircuitStroke(context, stroke.metrics, circuit, now, stroke.reachScale);
         });
@@ -2027,7 +2078,7 @@ export function CircuitLines({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [circuitRenderMetricsMap, circuits, isRunning, size.height, size.width]);
+  }, [isRunning, size.height, size.width]);
 
   return (
     <div
