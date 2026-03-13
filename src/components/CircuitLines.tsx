@@ -21,6 +21,7 @@ type Circuit = {
   createdAt: number;
   d: string;
   renderPaths: string[];
+  busBundleOffsets?: readonly number[];
   busJoin?: {
     busId: string;
     busIndex: number;
@@ -49,6 +50,7 @@ type Layout = {
   viewWidth: number;
   viewHeight: number;
   grid: number;
+  busBundleOffsets: readonly number[];
   routeMinX: number;
   routeMaxX: number;
   routeMinY: number;
@@ -68,9 +70,9 @@ const GRID = 20;
 const MARGIN = 60;
 
 const TRACE_MIN_TURNS = 2;
-const TRACE_MAX_TURNS = 8;
+const TRACE_MAX_TURNS = 5;
 const BUS_MIN_TURNS = 1;
-const BUS_MAX_TURNS = 4;
+const BUS_MAX_TURNS = 2;
 
 const MIN_ACTIVE_LINES = 8;
 const MAX_ACTIVE_LINES = 16;
@@ -78,13 +80,17 @@ const INITIAL_ACTIVE_LINES = 10;
 const MIN_BUS_LINES = 1;
 const MAX_BUS_LINES = 2;
 const MAX_CANVAS_DPR = 1.5;
+const INITIAL_SPAWN_INTERVAL_MS = 60;
+const MIN_FILL_INTERVAL_MS = 120;
+const NORMAL_SPAWN_INTERVAL_MIN_MS = 900;
+const NORMAL_SPAWN_INTERVAL_MAX_MS = 1700;
 
 const REGION_COLS = 3;
 const REGION_ROWS = 3;
 const MAX_LINES_PER_REGION = 3;
 const EDGE_SIDE_TARGET = 2;
 const BUS_JOIN_POINT_LIMIT = 4;
-const BUS_BUNDLE_OFFSETS = [-3.5, 0, 3.5] as const;
+const BUS_LINE_SPACING = 4.6;
 const BUS_LANE_STEP = 3.5;
 
 const DIRS: Array<{ dx: number; dy: number }> = [
@@ -124,6 +130,41 @@ function dist(a: Pt, b: Pt) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getCircuitPerformanceTier(width: number) {
+  const deviceMemory =
+    typeof navigator !== "undefined"
+      ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8
+      : 8;
+
+  if (width < 768 || deviceMemory <= 4) return "low";
+  if (width < 1200 || deviceMemory <= 8) return "medium";
+  return "high";
+}
+
+function getBusBundleOffsets(width: number) {
+  const tier = getCircuitPerformanceTier(width);
+
+  if (tier === "low") {
+    return Math.random() < 0.14
+      ? ([-BUS_LINE_SPACING, 0, BUS_LINE_SPACING] as const)
+      : ([-BUS_LINE_SPACING / 2, BUS_LINE_SPACING / 2] as const);
+  }
+
+  if (tier === "medium") {
+    return Math.random() < 0.22
+      ? ([-BUS_LINE_SPACING, 0, BUS_LINE_SPACING] as const)
+      : ([-BUS_LINE_SPACING / 2, BUS_LINE_SPACING / 2] as const);
+  }
+
+  return Math.random() < 0.3
+    ? ([-BUS_LINE_SPACING, 0, BUS_LINE_SPACING] as const)
+    : ([-BUS_LINE_SPACING / 2, BUS_LINE_SPACING / 2] as const);
+}
+
+function getBusSideBaseOffset(offsets: readonly number[], laneSide: -1 | 1) {
+  return laneSide < 0 ? offsets[0] : offsets[offsets.length - 1];
 }
 
 function buildLayout(width: number, height: number, titleBounds?: TitleBounds | null): Layout {
@@ -192,6 +233,7 @@ function buildLayout(width: number, height: number, titleBounds?: TitleBounds | 
     viewWidth: safeWidth,
     viewHeight: safeHeight,
     grid: GRID,
+    busBundleOffsets: getBusBundleOffsets(safeWidth),
     routeMinX,
     routeMaxX,
     routeMinY,
@@ -212,9 +254,11 @@ function buildLayout(width: number, height: number, titleBounds?: TitleBounds | 
 }
 
 function getLineTargets(width: number, height: number) {
+  const tier = getCircuitPerformanceTier(width);
+  const lineCap = tier === "low" ? 10 : tier === "medium" ? 13 : MAX_ACTIVE_LINES;
   const areaFactor = Math.max(1, Math.floor((width * height) / 240000));
-  const min = clamp(areaFactor + 3, MIN_ACTIVE_LINES, MAX_ACTIVE_LINES - 2);
-  const max = clamp(min + 3, min + 1, MAX_ACTIVE_LINES - 1);
+  const min = clamp(areaFactor + 3, MIN_ACTIVE_LINES, lineCap - 2);
+  const max = clamp(min + 3, min + 1, lineCap - 1);
   const initial = clamp(min + 1, min, max);
 
   return { min, max, initial };
@@ -477,14 +521,15 @@ function buildPathString(points: Pt[]) {
 }
 
 function buildRenderablePaths(
-  circuit: Pick<Circuit, "kind" | "d" | "gridPts">,
+  circuit: Pick<Circuit, "kind" | "d" | "gridPts" | "busBundleOffsets">,
   layout: Layout,
 ) {
   if (circuit.kind !== "bus") {
     return [circuit.d];
   }
 
-  return BUS_BUNDLE_OFFSETS.map((offset) =>
+  const bundleOffsets = circuit.busBundleOffsets ?? layout.busBundleOffsets;
+  return bundleOffsets.map((offset) =>
     buildOffsetPathData(circuit.gridPts, layout, offset),
   );
 }
@@ -502,13 +547,31 @@ function countBusLaneAttachments(
   ).length;
 }
 
+function countBusAttachments(circuits: Circuit[], busId: string) {
+  return circuits.filter((circuit) => circuit.busJoin?.busId === busId).length;
+}
+
+function isCompatibleBusSide(traceSide: EdgeSide, busSide: EdgeSide) {
+  if (traceSide === busSide) return true;
+
+  const adjacent: Record<EdgeSide, EdgeSide[]> = {
+    top: ["left", "right"],
+    right: ["top", "bottom"],
+    bottom: ["left", "right"],
+    left: ["top", "bottom"],
+  };
+
+  return adjacent[traceSide].includes(busSide);
+}
+
 function buildBusRenderPathMap(circuits: Circuit[], layout: Layout) {
   const map = new Map<string, string[]>();
 
   circuits
     .filter((circuit) => circuit.kind === "bus")
     .forEach((bus) => {
-      const basePaths = BUS_BUNDLE_OFFSETS.map((offset) =>
+      const bundleOffsets = bus.busBundleOffsets ?? layout.busBundleOffsets;
+      const basePaths = bundleOffsets.map((offset) =>
         buildOffsetPathData(bus.gridPts, layout, offset),
       );
 
@@ -527,9 +590,8 @@ function buildBusRenderPathMap(circuits: Circuit[], layout: Layout) {
           if (!join) return null;
 
           const laneOffset =
-            join.laneSide < 0
-              ? BUS_BUNDLE_OFFSETS[0] - join.laneRank * BUS_LANE_STEP
-              : BUS_BUNDLE_OFFSETS[2] + join.laneRank * BUS_LANE_STEP;
+            getBusSideBaseOffset(bundleOffsets, join.laneSide) +
+            join.laneSide * join.laneRank * BUS_LANE_STEP;
 
           return buildOffsetPathData(
             bus.gridPts.slice(join.busIndex),
@@ -557,7 +619,8 @@ function buildBusRenderPointMap(circuits: Circuit[], layout: Layout) {
   circuits
     .filter((circuit) => circuit.kind === "bus")
     .forEach((bus) => {
-      const clippedLanes = BUS_BUNDLE_OFFSETS.map((offset) =>
+      const bundleOffsets = bus.busBundleOffsets ?? layout.busBundleOffsets;
+      const clippedLanes = bundleOffsets.map((offset) =>
         clipBusLaneToTargetFace(
           buildOffsetPoints(bus.gridPts, layout, offset),
           bus.side,
@@ -587,10 +650,10 @@ function buildJoinedTraceRenderPoints(circuit: Circuit, parentBus: Circuit, layo
   const preJoinPx = circuit.gridPts
     .slice(0, join.traceIndex)
     .map((point) => toPixel(point, layout));
+  const bundleOffsets = parentBus.busBundleOffsets ?? layout.busBundleOffsets;
   const laneOffset =
-    join.laneSide < 0
-      ? BUS_BUNDLE_OFFSETS[0] - join.laneRank * BUS_LANE_STEP
-      : BUS_BUNDLE_OFFSETS[2] + join.laneRank * BUS_LANE_STEP;
+    getBusSideBaseOffset(bundleOffsets, join.laneSide) +
+    join.laneSide * join.laneRank * BUS_LANE_STEP;
   const busTailPoints = buildOffsetPoints(
     parentBus.gridPts.slice(join.busIndex),
     layout,
@@ -602,7 +665,6 @@ function buildJoinedTraceRenderPoints(circuit: Circuit, parentBus: Circuit, layo
 
 function buildCircuitRenderPointMap(circuits: Circuit[], layout: Layout) {
   const map = new Map<string, RenderStroke[]>();
-  const busPointMap = buildBusRenderPointMap(circuits, layout);
   const busById = new Map(
     circuits
       .filter((circuit) => circuit.kind === "bus")
@@ -611,7 +673,7 @@ function buildCircuitRenderPointMap(circuits: Circuit[], layout: Layout) {
 
   circuits.forEach((circuit) => {
     if (circuit.kind === "bus") {
-      map.set(circuit.id, busPointMap.get(circuit.id) || []);
+      map.set(circuit.id, buildBusRenderPointMap([circuit], layout).get(circuit.id) || []);
       return;
     }
 
@@ -627,6 +689,25 @@ function buildCircuitRenderPointMap(circuits: Circuit[], layout: Layout) {
   });
 
   return map;
+}
+
+function buildCircuitRenderStrokes(
+  circuit: Circuit,
+  circuitsById: Map<string, Circuit>,
+  layout: Layout,
+) {
+  if (circuit.kind === "bus") {
+    return buildBusRenderPointMap([circuit], layout).get(circuit.id) || [];
+  }
+
+  if (circuit.busJoin) {
+    const parentBus = circuitsById.get(circuit.busJoin.busId);
+    if (parentBus) {
+      return [{ points: buildJoinedTraceRenderPoints(circuit, parentBus, layout) }];
+    }
+  }
+
+  return [{ points: circuit.gridPts.map((point) => toPixel(point, layout)) }];
 }
 
 function resolveLinkedLifecycle(parent: Circuit, now: number, fallbackDraw: number) {
@@ -771,6 +852,67 @@ function buildCircuitRenderMetricsMap(circuitRenderPointMap: Map<string, RenderS
   });
 
   return map;
+}
+
+function getAffectedRenderIds(nextCircuits: Circuit[], changedCircuits: Circuit[]) {
+  const ids = new Set<string>();
+  const changedBusIds = new Set<string>();
+
+  changedCircuits.forEach((circuit) => {
+    ids.add(circuit.id);
+    if (circuit.kind === "bus") {
+      changedBusIds.add(circuit.id);
+    }
+    if (circuit.busJoin) {
+      ids.add(circuit.busJoin.busId);
+      changedBusIds.add(circuit.busJoin.busId);
+    }
+  });
+
+  if (changedBusIds.size > 0) {
+    nextCircuits.forEach((circuit) => {
+      if (circuit.busJoin && changedBusIds.has(circuit.busJoin.busId)) {
+        ids.add(circuit.id);
+      }
+    });
+  }
+
+  return ids;
+}
+
+function updateCircuitRenderMetricsMap(
+  currentMap: Map<string, RenderStrokeMetrics[]>,
+  nextCircuits: Circuit[],
+  changedCircuits: Circuit[],
+  layout: Layout,
+) {
+  const nextMap = new Map(currentMap);
+  const circuitsById = new Map(nextCircuits.map((circuit) => [circuit.id, circuit] as const));
+  const affectedIds = getAffectedRenderIds(nextCircuits, changedCircuits);
+
+  affectedIds.forEach((id) => {
+    const circuit = circuitsById.get(id);
+    if (!circuit) {
+      nextMap.delete(id);
+      return;
+    }
+
+    const strokes = buildCircuitRenderStrokes(circuit, circuitsById, layout);
+    const strokeMetrics: RenderStrokeMetrics[] = [];
+
+    strokes.forEach((stroke) => {
+      const metrics = buildPolylineMetrics(stroke.points);
+      if (!metrics) return;
+      strokeMetrics.push({
+        metrics,
+        reachScale: stroke.reachScale,
+      });
+    });
+
+    nextMap.set(id, strokeMetrics);
+  });
+
+  return nextMap;
 }
 
 function samplePointAtDistance(metrics: PolylineMetrics, targetDistance: number) {
@@ -1099,7 +1241,7 @@ function chooseWaypoint(
       !isInsideTitleInterior(anchor, layout),
   );
 
-  const preferRing = ringCandidates.length > 0 && Math.random() < 0.72;
+  const preferRing = ringCandidates.length > 0 && Math.random() < 0.2;
   const pool = preferRing ? ringCandidates : baseCandidates;
 
   if (pool.length === 0) return null;
@@ -1121,18 +1263,18 @@ function nearOccupiedPenalty(point: GridPt, occupiedPoints: Set<string>) {
   return penalty;
 }
 
-function centerPenalty(point: GridPt, layout: Layout) {
+function centerPenalty(point: GridPt, layout: Layout, isEnd = false) {
   const inCore = inRect(point, layout.titleCore);
   const inRing = inRect(point, layout.titleRing);
 
-  if (inCore) return 2.8;
-  if (inRing) return 0.02;
+  if (inCore) return 999;
+  if (inRing && !isEnd) return 1.8;
 
   const centerX = (layout.titleCore.minX + layout.titleCore.maxX) / 2;
   const centerY = (layout.titleCore.minY + layout.titleCore.maxY) / 2;
   const dx = Math.abs(point.gx - centerX);
   const dy = Math.abs(point.gy - centerY);
-  return Math.min((dx + dy) * 0.03, 0.9);
+  return Math.min((dx + dy) * 0.02, 0.6);
 }
 
 type RouteOptions = {
@@ -1140,6 +1282,7 @@ type RouteOptions = {
   maxTurns: number;
   turnPenalty: number;
   busPoints?: Set<string>;
+  preferBus?: boolean;
 };
 
 function reconstructPath(
@@ -1245,20 +1388,26 @@ function findRoute(
 
       const nextPointKey = pointKey(nextPoint.gx, nextPoint.gy);
       const isBusPoint = options.busPoints?.has(nextPointKey);
+      const currentDist = manhattan(current.point, end);
+      const nextDist = manhattan(nextPoint, end);
 
       if (occupiedPoints.has(nextPointKey) && !isEnd && !isBusPoint) {
         nextCost += 2.2;
       }
 
       nextCost += nearOccupiedPenalty(nextPoint, occupiedPoints);
-      nextCost += centerPenalty(nextPoint, layout);
+      nextCost += centerPenalty(nextPoint, layout, isEnd);
+
+      if (nextDist > currentDist) {
+        nextCost += options.kind === "bus" ? 0.8 : 1.2;
+      }
 
       if (options.kind === "trace" && isBusPoint) {
-        nextCost -= 0.55;
+        nextCost -= options.preferBus ? 0.18 : 0.04;
       }
 
       if (options.kind === "bus" && inRect(nextPoint, layout.titleRing) && !isEnd) {
-        nextCost += 0.8;
+        nextCost += 1.1;
       }
 
       if (nextTurns > options.maxTurns) continue;
@@ -1335,6 +1484,65 @@ function buildBusPointSet(circuits: Circuit[]) {
   return points;
 }
 
+type SpawnCache = {
+  occupiedEdges: Set<string>;
+  occupiedPoints: Set<string>;
+  regionCounts: Map<string, number>;
+  busPoints: Set<string>;
+};
+
+function buildSpawnCache(circuits: Circuit[], layout: Layout): SpawnCache {
+  return {
+    ...buildOccupancy(circuits),
+    regionCounts: getRegionCounts(circuits, layout),
+    busPoints: buildBusPointSet(circuits),
+  };
+}
+
+function createEmptySpawnCache(): SpawnCache {
+  return {
+    occupiedEdges: new Set(),
+    occupiedPoints: new Set(),
+    regionCounts: new Map(),
+    busPoints: new Set(),
+  };
+}
+
+function cloneSpawnCache(cache: SpawnCache): SpawnCache {
+  return {
+    occupiedEdges: new Set(cache.occupiedEdges),
+    occupiedPoints: new Set(cache.occupiedPoints),
+    regionCounts: new Map(cache.regionCounts),
+    busPoints: new Set(cache.busPoints),
+  };
+}
+
+function addRouteToOccupancy(
+  route: GridPt[],
+  occupiedEdges: Set<string>,
+  occupiedPoints: Set<string>,
+) {
+  route.forEach((point, idx) => {
+    occupiedPoints.add(pointKey(point.gx, point.gy));
+    if (idx > 0) {
+      occupiedEdges.add(edgeKey(route[idx - 1], point));
+    }
+  });
+}
+
+function applyCircuitToSpawnCache(cache: SpawnCache, circuit: Circuit, layout: Layout) {
+  addRouteToOccupancy(circuit.gridPts, cache.occupiedEdges, cache.occupiedPoints);
+
+  const regionKey = getRegionKey(circuit.gridPts, layout);
+  cache.regionCounts.set(regionKey, (cache.regionCounts.get(regionKey) || 0) + 1);
+
+  if (circuit.kind === "bus") {
+    circuit.gridPts.forEach((point) => {
+      cache.busPoints.add(pointKey(point.gx, point.gy));
+    });
+  }
+}
+
 function pickTraceBusLaneSide(
   route: GridPt[],
   traceIndex: number,
@@ -1344,8 +1552,13 @@ function pickTraceBusLaneSide(
 ) {
   const incomingPoint = toPixel(route[traceIndex - 1], layout);
   const busTail = bus.gridPts.slice(busIndex, Math.min(busIndex + 3, bus.gridPts.length));
-  const leftStart = buildOffsetPoints(busTail, layout, BUS_BUNDLE_OFFSETS[0])[0];
-  const rightStart = buildOffsetPoints(busTail, layout, BUS_BUNDLE_OFFSETS[2])[0];
+  const bundleOffsets = bus.busBundleOffsets ?? layout.busBundleOffsets;
+  const leftStart = buildOffsetPoints(busTail, layout, bundleOffsets[0])[0];
+  const rightStart = buildOffsetPoints(
+    busTail,
+    layout,
+    bundleOffsets[bundleOffsets.length - 1],
+  )[0];
 
   if (!leftStart) return 1;
   if (!rightStart) return -1;
@@ -1353,19 +1566,27 @@ function pickTraceBusLaneSide(
   return dist(incomingPoint, leftStart) <= dist(incomingPoint, rightStart) ? -1 : 1;
 }
 
-function attachTraceToBus(route: GridPt[], circuits: Circuit[], layout: Layout) {
+function attachTraceToBus(
+  route: GridPt[],
+  circuits: Circuit[],
+  layout: Layout,
+  traceSide: EdgeSide,
+) {
   const buses = circuits.filter((circuit) => circuit.kind === "bus");
   let bestMatch:
     | TraceBusJoin
     | undefined;
 
   buses.forEach((bus) => {
+    if (!isCompatibleBusSide(traceSide, bus.side)) return;
+    if (countBusAttachments(circuits, bus.id) >= 3) return;
+
     const pointToIndex = new Map<string, number>();
     bus.gridPts.forEach((point, idx) => {
       pointToIndex.set(pointKey(point.gx, point.gy), idx);
     });
 
-    for (let i = 2; i < route.length - 1; i += 1) {
+    for (let i = Math.max(2, Math.floor(route.length * 0.45)); i < route.length - 1; i += 1) {
       const matchIndex = pointToIndex.get(pointKey(route[i].gx, route[i].gy));
       if (matchIndex === undefined) continue;
       if (matchIndex >= bus.gridPts.length - 1) continue;
@@ -1498,10 +1719,10 @@ function buildJoinedTraceRenderPath(
     .slice(0, join.traceIndex)
     .map((point) => toPixel(point, layout));
   const busTail = join.bus.gridPts.slice(join.busIndex);
+  const bundleOffsets = join.bus.busBundleOffsets ?? layout.busBundleOffsets;
   const laneOffset =
-    join.laneSide < 0
-      ? BUS_BUNDLE_OFFSETS[0] - laneRank * BUS_LANE_STEP
-      : BUS_BUNDLE_OFFSETS[2] + laneRank * BUS_LANE_STEP;
+    getBusSideBaseOffset(bundleOffsets, join.laneSide) +
+    join.laneSide * laneRank * BUS_LANE_STEP;
   const offsetTailPts = buildOffsetPoints(busTail, layout, laneOffset);
 
   if (preJoinPx.length === 0 || offsetTailPts.length === 0) {
@@ -1621,14 +1842,13 @@ function createCircuit(
   kind: LineKind,
   now: number,
   existingCircuits: Circuit[],
+  spawnCache: SpawnCache,
   layout: Layout,
   edgeAnchors: Anchor[],
   innerAnchors: Anchor[],
   ringAnchors: Anchor[],
 ) {
-  const { occupiedEdges, occupiedPoints } = buildOccupancy(existingCircuits);
-  const regionCounts = getRegionCounts(existingCircuits, layout);
-  const busPoints = buildBusPointSet(existingCircuits);
+  const { occupiedEdges, occupiedPoints, regionCounts, busPoints } = spawnCache;
 
   for (let attempt = 0; attempt < 28; attempt += 1) {
     const selection =
@@ -1641,6 +1861,10 @@ function createCircuit(
     const { start, end } = selection;
     const side = start.side;
     if (!side) continue;
+    const shouldTryJoinBus =
+      kind === "trace" &&
+      busPoints.size > 0 &&
+      Math.random() < 0.35;
 
     let route: GridPt[] | null = null;
 
@@ -1652,38 +1876,23 @@ function createCircuit(
           maxTurns: TRACE_MAX_TURNS,
           turnPenalty: 0.42,
           busPoints,
+          preferBus: shouldTryJoinBus,
         });
         if (firstLeg && firstLeg.length >= 3) {
-          const stagedCircuits = [
-            ...existingCircuits,
-            {
-              id: `${id}-stage`,
-              kind: "trace" as const,
-              side,
-              createdAt: now,
-              d: "",
-              renderPaths: [],
-              nodes: [],
-              gridPts: firstLeg,
-              drawDuration: 0,
-              holdDuration: 0,
-              fadeDuration: 0,
-              totalDuration: 0,
-              strokeWidth: 1,
-            },
-          ];
-          const stagedOccupancy = buildOccupancy(stagedCircuits);
+          const stagedCache = cloneSpawnCache(spawnCache);
+          addRouteToOccupancy(firstLeg, stagedCache.occupiedEdges, stagedCache.occupiedPoints);
           const secondLeg = findRoute(
             waypoint,
             end,
-            stagedOccupancy.occupiedEdges,
-            stagedOccupancy.occupiedPoints,
+            stagedCache.occupiedEdges,
+            stagedCache.occupiedPoints,
             layout,
             {
               kind: "trace",
               maxTurns: TRACE_MAX_TURNS,
               turnPenalty: 0.42,
               busPoints,
+              preferBus: shouldTryJoinBus,
             },
           );
 
@@ -1700,14 +1909,15 @@ function createCircuit(
         maxTurns: kind === "bus" ? BUS_MAX_TURNS : TRACE_MAX_TURNS,
         turnPenalty: kind === "bus" ? 0.78 : 0.42,
         busPoints: kind === "trace" ? busPoints : undefined,
+        preferBus: shouldTryJoinBus,
       });
     }
 
     let traceJoin: TraceBusJoin | undefined;
 
     if (!route || route.length < 5) continue;
-    if (kind === "trace" && busPoints.size > 0) {
-      traceJoin = attachTraceToBus(route, existingCircuits, layout);
+    if (kind === "trace" && shouldTryJoinBus) {
+      traceJoin = attachTraceToBus(route, existingCircuits, layout, side);
       if (traceJoin) {
         route = traceJoin.route;
       }
@@ -1749,6 +1959,7 @@ function createCircuit(
       d,
       gridPts: route,
       nodes,
+      busBundleOffsets: kind === "bus" ? getBusBundleOffsets(layout.viewWidth) : undefined,
       busJoin:
         kind === "trace" && traceJoin
           ? {
@@ -1796,10 +2007,12 @@ export function CircuitLines({
   );
   const [isResizing, setIsResizing] = useState(false);
   const circuitsRef = useRef<Circuit[]>([]);
+  const spawnCacheRef = useRef<SpawnCache>(createEmptySpawnCache());
   const circuitRenderMetricsRef = useRef<Map<string, RenderStrokeMetrics[]>>(new Map());
   const nextIdRef = useRef(0);
   const removalTimersRef = useRef<Map<string, number>>(new Map());
   const spawnLoopTimerRef = useRef<number | null>(null);
+  const refillTimerRef = useRef<number | null>(null);
   const resizeTimerRef = useRef<number | null>(null);
 
   const layout = useMemo(
@@ -1830,10 +2043,21 @@ export function CircuitLines({
     [size.width, size.height],
   );
   const isRunning = active && isDocumentVisible && !isResizing;
-  const syncRenderMetrics = useCallback(
+  const syncAllRenderMetrics = useCallback(
     (nextCircuits: Circuit[]) => {
       circuitRenderMetricsRef.current = buildCircuitRenderMetricsMap(
         buildCircuitRenderPointMap(nextCircuits, layout),
+      );
+    },
+    [layout],
+  );
+  const syncPartialRenderMetrics = useCallback(
+    (nextCircuits: Circuit[], changedCircuits: Circuit[]) => {
+      circuitRenderMetricsRef.current = updateCircuitRenderMetricsMap(
+        circuitRenderMetricsRef.current,
+        nextCircuits,
+        changedCircuits,
+        layout,
       );
     },
     [layout],
@@ -1902,6 +2126,10 @@ export function CircuitLines({
       window.clearTimeout(spawnLoopTimerRef.current);
       spawnLoopTimerRef.current = null;
     }
+    if (refillTimerRef.current) {
+      window.clearTimeout(refillTimerRef.current);
+      refillTimerRef.current = null;
+    }
   }, []);
 
   const removeCircuit = useCallback(
@@ -1921,11 +2149,13 @@ export function CircuitLines({
         }
       });
 
+      const removedCircuits = circuitsRef.current.filter((circuit) => idsToRemove.has(circuit.id));
       const next = circuitsRef.current.filter((circuit) => !idsToRemove.has(circuit.id));
       circuitsRef.current = next;
-      syncRenderMetrics(next);
+      spawnCacheRef.current = buildSpawnCache(next, layout);
+      syncPartialRenderMetrics(next, removedCircuits);
     },
-    [syncRenderMetrics],
+    [layout, syncPartialRenderMetrics],
   );
 
   const spawnCircuit = useCallback(
@@ -1946,6 +2176,7 @@ export function CircuitLines({
         desiredKind,
         now,
         circuitsRef.current,
+        spawnCacheRef.current,
         layout,
         edgeAnchors,
         innerAnchors,
@@ -1959,6 +2190,7 @@ export function CircuitLines({
           desiredKind === "bus" ? "trace" : "bus",
           now,
           circuitsRef.current,
+          spawnCacheRef.current,
           layout,
           edgeAnchors,
           innerAnchors,
@@ -1970,7 +2202,8 @@ export function CircuitLines({
       nextIdRef.current += 1;
       const next = [...circuitsRef.current, fallbackCircuit];
       circuitsRef.current = next;
-      syncRenderMetrics(next);
+      applyCircuitToSpawnCache(spawnCacheRef.current, fallbackCircuit, layout);
+      syncPartialRenderMetrics(next, [fallbackCircuit]);
 
       if (!fallbackCircuit.busJoin) {
         const removalTimer = window.setTimeout(() => {
@@ -1981,46 +2214,62 @@ export function CircuitLines({
       }
       return true;
     },
-    [edgeAnchors, innerAnchors, layout, removeCircuit, ringAnchors, syncRenderMetrics],
+    [edgeAnchors, innerAnchors, layout, removeCircuit, ringAnchors, syncPartialRenderMetrics],
+  );
+
+  const scheduleRefill = useCallback(
+    (targetCount: number, delay = MIN_FILL_INTERVAL_MS) => {
+      if (!isRunning) return;
+      if (refillTimerRef.current) return;
+
+      refillTimerRef.current = window.setTimeout(() => {
+        refillTimerRef.current = null;
+        if (!isRunning) return;
+        if (circuitsRef.current.length >= targetCount) return;
+
+        const spawned = spawnCircuit(targetCount);
+        if (!spawned) return;
+
+        if (circuitsRef.current.length < targetCount) {
+          scheduleRefill(targetCount, MIN_FILL_INTERVAL_MS);
+        }
+      }, delay);
+    },
+    [isRunning, spawnCircuit],
   );
 
   useEffect(() => {
     if (!isRunning) {
       clearTimers();
       circuitsRef.current = [];
+      spawnCacheRef.current = buildSpawnCache([], layout);
       circuitRenderMetricsRef.current = new Map();
       return;
     }
 
     clearTimers();
     circuitsRef.current = [];
+    spawnCacheRef.current = buildSpawnCache([], layout);
     circuitRenderMetricsRef.current = new Map();
-
-    while (circuitsRef.current.length < lineTargets.initial) {
-      const spawned = spawnCircuit(lineTargets.initial);
-      if (!spawned) break;
-    }
+    scheduleRefill(lineTargets.initial, INITIAL_SPAWN_INTERVAL_MS);
 
     return () => {
       clearTimers();
     };
-  }, [clearTimers, isRunning, layoutResetKey, lineTargets.initial, spawnCircuit]);
+  }, [clearTimers, isRunning, layout, layoutResetKey, lineTargets.initial, scheduleRefill]);
 
   useEffect(() => {
     if (!isRunning) return;
     let cancelled = false;
 
     const scheduleNextSpawn = () => {
-      const nextDelay = rand(900, 1700);
+      const nextDelay = rand(NORMAL_SPAWN_INTERVAL_MIN_MS, NORMAL_SPAWN_INTERVAL_MAX_MS);
       spawnLoopTimerRef.current = window.setTimeout(() => {
         if (cancelled) return;
 
         const count = circuitsRef.current.length;
         if (count < lineTargets.min) {
-          while (circuitsRef.current.length < lineTargets.min) {
-            const spawned = spawnCircuit(lineTargets.min);
-            if (!spawned) break;
-          }
+          scheduleRefill(lineTargets.min);
         } else if (count < lineTargets.max && Math.random() < 0.82) {
           spawnCircuit(lineTargets.max);
         }
@@ -2037,7 +2286,7 @@ export function CircuitLines({
         window.clearTimeout(spawnLoopTimerRef.current);
       }
     };
-  }, [isRunning, lineTargets.max, lineTargets.min, spawnCircuit]);
+  }, [isRunning, lineTargets.max, lineTargets.min, scheduleRefill, spawnCircuit]);
 
   useEffect(() => {
     if (!isRunning) return;
