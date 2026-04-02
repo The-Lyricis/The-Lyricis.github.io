@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   Filter,
   Github,
@@ -10,31 +12,13 @@ import {
   Shuffle,
   X,
 } from "lucide-react";
-import img2 from "figma:asset/projects/shader-factory-cover.png";
-import img3 from "figma:asset/projects/ray-marching-renderer-cover.png";
-import img5 from "figma:asset/projects/hda-hex-terrain-cover.png";
-import img6 from "figma:asset/projects/gpu-particle-system-cover.png";
-import christmasPsychoImg from "figma:asset/projects/christmas-psycho-cover.png";
-import hybridEngineImg from "figma:asset/projects/hybrid-engine-cover.png";
-import unselfImg from "figma:asset/projects/unself-cover.png";
-import vibrantImg from "figma:asset/projects/vibrant-cover.png";
-
-interface Project {
-  id: number;
-  title: string;
-  subtitle?: string;
-  category: "ta" | "gamedev" | "graphics";
-  description: string;
-  longDescription?: string;
-  credits?: string;
-  color: string;
-  image: string;
-  tags: string[];
-  github?: string;
-  demo?: string;
-  projectPage?: string;
-  pinned?: boolean;
-}
+import { useLocale, useMessages } from "../i18n";
+import {
+  getProjects,
+  getStaticProjects,
+  type Project,
+} from "../data/projects";
+import { buildProjectPath, navigateTo } from "../lib/routing";
 
 const CATEGORIES = [
   { id: "all", label: "All Projects" },
@@ -43,148 +27,39 @@ const CATEGORIES = [
   { id: "graphics", label: "Graphics" },
 ];
 
-const RAW_PROJECTS: Project[] = [
-  {
-    id: 8,
-    title: "UNSELF",
-    category: "gamedev",
-    description:
-      "UNSELF - a puzzle-driven visual novel in trembling monochrome, exploring identity and reflection through cosmic horror.",
-    longDescription:
-      "UNSELF is a puzzle-driven visual novel drawn in quivering black-and-white lines, an ink-and-shadow world where the visuals themselves carry meaning. Set under a cosmic-horror lens, the story follows a creature that wakes each day to a different face in the mirror, performing small rituals of adjustment and concealment as it searches for a stable self. The result is a compact, atmosphere-first experience built around reflection, ambiguity, and unease.\n\nHighlights:\n- Visual-first storytelling: trembling linework and \"breathing\" darkness as narrative language\n- Puzzle + VN structure: light puzzles that gate scenes and reinforce the theme of reflection\n- Cosmic-horror tone: quiet, ritual-like progression rather than jump-scare reliance\n- Game Jam delivery: built in a short jam timeframe, with focused scope and finish",
-    credits:
-      "Credits: Jiliang Ye, Ao Wang, Zhengyang Gu, Yuxi Guo, Hang Wan\nAudio: Epidemic Sound (music & SFX)\nFont: Estonia",
-    color: "#E0E0E0",
-    image: unselfImg,
-    tags: [
-      "Puzzle VN",
-      "Cosmic Horror",
-      "Hand-drawn",
-      "Narrative",
-      "Game Jam",
-      "Indie",
-      "Experimental",
-    ],
-    demo: "https://legolaswan.itch.io/unself",
-  },
-  {
-    id: 9,
-    title: "Vibrant",
-    subtitle: "A 2D pixel side-scrolling action adventure",
-    category: "gamedev",
-    description:
-      "A curious little chick exploring a vibrant world filled with enemies, secrets, and new abilities.",
-    longDescription:
-      "Play as a curious little chick exploring a vibrant world filled with enemies, secrets, and new abilities. Fight through stages, unlock skills that expand your movement and combat options, and rescue your trapped friend, a pig, along the journey.",
-    color: "#A3E635",
-    image: vibrantImg,
-    tags: [
-      "2D",
-      "Pixel Art",
-      "Aseprite",
-      "Action Adventure",
-      "Exploration",
-      "Combat",
-    ],
-    github: "https://github.com/The-Lyricis/Vibrant",
-  },
-  {
-    id: 7,
-    title: "Christmas Psycho",
-    category: "gamedev",
-    description:
-      "A 15-day jam puzzle game with a quirky hand-drawn style and comedic storytelling.",
-    longDescription:
-      "A short, story-driven puzzle game made in 15 days. It blends hand-drawn, humorous visuals with light narrative moments, where players explore compact scenes, collect clues, and solve small logic puzzles to push the story forward. Built with a focus on clear interaction, readable composition, and punchy comedic timing.",
-    color: "#FFFFFF",
-    image: christmasPsychoImg,
-    tags: ["Game Jam", "15-Day Dev", "2D", "Puzzle", "Narrative", "Comedy", "Hand-Drawn"],
-    demo: "https://www.gcores.com/games/148141",
-  },
-  {
-    id: 1,
-    title: "ShaderFactory",
-    subtitle: "A Personal Shader Library & Study Collection",
-    category: "ta",
-    description:
-      "A curated collection of shader studies and visual experiments exploring rendering fundamentals and real-time art direction.",
-    longDescription:
-      "ShaderFactory is my personal shader library, a curated collection of shader studies and visual experiments. It includes a range of small, focused effects built to explore rendering fundamentals and real-time art direction, with clean parameter controls for quick iteration. I use it as both a learning archive and a reusable toolbox for future projects.\n\nHighlights:\n- A growing set of shader exercises and stylized effects, each isolated and easy to reuse\n- Artist-friendly parameters with sensible defaults for fast look-dev\n- Notes and variations that document what I learned and how each effect was built",
-    color: "#64FFDA",
-    image: img2,
-    tags: ["Shader Graph", "HLSL", "Unity", "Real-time Rendering"],
-  },
-  {
-    id: 3,
-    title: "GPU Particle System",
-    category: "graphics",
-    description:
-      "Implemented a million-particle simulation system using compute shaders with collision detection.",
-    longDescription:
-      "Implemented a million-particle simulation system using compute shaders. Features include collision detection, force fields, particle spawning patterns, and real-time performance on mobile platforms.",
-    color: "#FF6B6B",
-    image: img6,
-    tags: ["Compute Shaders", "GPU", "VFX", "Optimization"],
-  },
-  {
-    id: 4,
-    title: "HDA for Unity - Procedural Hex Terrain Tool",
-    category: "ta",
-    description:
-      "Built a Houdini Digital Asset (HDA) workflow integrated into Unity for fast, art-directable procedural generation.",
-    longDescription:
-      "Built a Houdini Digital Asset (HDA) workflow integrated into Unity for fast, art-directable procedural generation. Exposed key parameters through a clean UI, enabling rapid iteration on layout, density, and shape while keeping results consistent and reproducible across builds.\n\nKey Features:\n- Parametric generation: controllable size, noise, falloff, and distribution with real-time iteration\n- Reproducible outputs: seed-based generation to keep results stable across sessions\n- Unity-friendly workflow: one-click bake/export to meshes for downstream use\n- Artist-facing controls: organized parameter groups and sensible defaults for quick tuning",
-    color: "#FF9A3C",
-    image: img5,
-    tags: ["Houdini Engine", "HDA", "Unity", "Procedural Generation", "VEX"],
-  },
-  {
-    id: 6,
-    title: "Ray Marching Renderer",
-    category: "graphics",
-    description:
-      "Developed real-time SDF-based ray marching renderer with volumetric fog and soft shadows.",
-    longDescription:
-      "Developed real-time SDF-based ray marching renderer with volumetric fog, soft shadows, and ambient occlusion. Optimized for 60fps on mid-range hardware using distance field caching.",
-    color: "#FF6B6B",
-    image: img3,
-    tags: ["GLSL", "Ray Marching", "SDF", "Real-time"],
-  },
-  {
-    id: 10,
-    title: "Hybrid Engine",
-    category: "graphics",
-    description:
-      "A personal engine study project focused on modern engine architecture, system implementation, and editor tooling.",
-    longDescription:
-      "Hybrid Engine is a personal project for studying and practicing modern engine architecture through hands-on implementation. The work is centered on understanding how core runtime systems collaborate, where module boundaries should live, and how editor-facing workflows connect back to engine fundamentals.\n\nKey Features:\n- Core runtime foundation with logging, events, input, windowing, and main loop management\n- OpenGL rendering backend with framebuffer-driven rendering and split Scene / Game viewports\n- EnTT-based ECS architecture with scene serialization and hierarchy data\n- Editor tooling with docking UI, Hierarchy, Inspector, Scene View, gizmo interaction, and object picking\n- Asset pipeline foundations with VFS, registry, .meta files, and import workflows for textures, meshes, materials, and scenes\n- Basic lighting support for directional lights and point lights\n- Early physics baseline with AABB collision and rigidbody iteration",
-    color: "#9D4EDD",
-    image: hybridEngineImg,
-    tags: [
-      "C++17",
-      "OpenGL",
-      "ECS",
-      "CMake",
-      "Engine Dev",
-      "Editor",
-      "Asset Pipeline",
-      "Physics",
-    ],
-    github: "https://github.com/The-Lyricis/HybridEngine",
-    pinned: true,
-  },
-];
-
 export function ProjectGallery() {
+  const { locale } = useLocale();
+  const messages = useMessages();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [localizedProjects, setLocalizedProjects] = useState<Project[]>(() =>
+    getStaticProjects(locale),
+  );
   const [shuffledProjects, setShuffledProjects] = useState<Project[]>([]);
+  const ITEMS_PER_PAGE = 6;
 
   useEffect(() => {
-    const pinnedProjects = RAW_PROJECTS.filter((project) => project.pinned);
-    const unpinnedProjects = RAW_PROJECTS.filter((project) => !project.pinned);
+    let cancelled = false;
+
+    setLocalizedProjects(getStaticProjects(locale));
+
+    void getProjects(locale).then((projects) => {
+      if (!cancelled) {
+        setLocalizedProjects(projects);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+
+  useEffect(() => {
+    const pinnedProjects = localizedProjects.filter((project) => project.pinned);
+    const unpinnedProjects = localizedProjects.filter((project) => !project.pinned);
 
     for (let i = unpinnedProjects.length - 1; i > 0; i -= 1) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -195,18 +70,34 @@ export function ProjectGallery() {
     }
 
     setShuffledProjects([...pinnedProjects, ...unpinnedProjects]);
-  }, []);
+  }, [localizedProjects]);
 
-  const filteredProjects = useMemo(() => {
-    const baseList = shuffledProjects.length > 0 ? shuffledProjects : RAW_PROJECTS;
+  useEffect(() => {
+    if (!selectedProject) return;
+
+    const nextProject = localizedProjects.find(
+      (project) => project.id === selectedProject.id,
+    );
+
+    if (nextProject) {
+      setSelectedProject(nextProject);
+    }
+  }, [localizedProjects, selectedProject]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, searchQuery]);
+
+  const { paginatedProjects, totalPages } = useMemo(() => {
+    const baseList =
+      shuffledProjects.length > 0 ? shuffledProjects : localizedProjects;
 
     const filtered = baseList.filter((project) => {
+      const query = searchQuery.toLowerCase();
       const matchesSearch =
-        project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        project.tags.some((tag) =>
-          tag.toLowerCase().includes(searchQuery.toLowerCase()),
-        );
+        project.title.toLowerCase().includes(query) ||
+        project.description.toLowerCase().includes(query) ||
+        project.tags.some((tag) => tag.toLowerCase().includes(query));
 
       const matchesFilter =
         activeFilter === "all" || project.category === activeFilter;
@@ -214,8 +105,23 @@ export function ProjectGallery() {
       return matchesSearch && matchesFilter;
     });
 
-    return filtered.slice(0, 6);
-  }, [shuffledProjects, searchQuery, activeFilter]);
+    const pageCount = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
+    return {
+      paginatedProjects: filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE),
+      totalPages: pageCount,
+    };
+  }, [
+    localizedProjects,
+    shuffledProjects,
+    searchQuery,
+    activeFilter,
+    currentPage,
+  ]);
+
+  const getCategoryLabel = (category: string) =>
+    messages.projects.categoryLabels[category] ?? category;
 
   return (
     <div className="min-h-screen px-8 py-20 relative">
@@ -265,7 +171,9 @@ export function ProjectGallery() {
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
-                <span className="relative z-10">{category.label}</span>
+                <span className="relative z-10">
+                  {messages.projects.categoryLabels[category.id] ?? category.label}
+                </span>
               </button>
             ))}
           </div>
@@ -277,7 +185,7 @@ export function ProjectGallery() {
               </div>
               <input
                 type="text"
-                placeholder="Search technologies..."
+                placeholder={messages.projects.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-10 py-2 bg-[#0A192F] border border-[#233554] rounded-lg text-[#E6F1FF] text-sm focus:outline-none focus:border-[#64FFDA] focus:ring-1 focus:ring-[#64FFDA] transition-all placeholder-[#8892B0]/50"
@@ -312,7 +220,7 @@ export function ProjectGallery() {
                 setShuffledProjects([...pinnedProjects, ...unpinnedProjects]);
               }}
               className="p-2 rounded-lg bg-[#112240] border border-[#233554] text-[#64FFDA] hover:bg-[#233554] transition-colors"
-              title="Shuffle Suggestions"
+              title={messages.projects.shuffleTitle}
             >
               <Shuffle className="w-4 h-4" />
             </button>
@@ -320,10 +228,13 @@ export function ProjectGallery() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto"
+        style={{ minHeight: "680px" }}
+      >
         <AnimatePresence mode="popLayout">
-          {filteredProjects.length > 0 ? (
-            filteredProjects.map((project, index) => (
+          {paginatedProjects.length > 0 ? (
+            paginatedProjects.map((project, index) => (
               <ProjectCard
                 key={project.id}
                 project={project}
@@ -331,6 +242,7 @@ export function ProjectGallery() {
                 isHovered={hoveredId === project.id}
                 onHover={setHoveredId}
                 onClick={setSelectedProject}
+                categoryLabel={getCategoryLabel(project.category)}
               />
             ))
           ) : (
@@ -341,7 +253,7 @@ export function ProjectGallery() {
               className="col-span-full text-center py-20 text-[#8892B0] flex flex-col items-center gap-4"
             >
               <Filter className="w-12 h-12 opacity-20" />
-              <p>No projects found matching your criteria.</p>
+              <p>{messages.projects.emptyState}</p>
               <button
                 onClick={() => {
                   setSearchQuery("");
@@ -349,18 +261,162 @@ export function ProjectGallery() {
                 }}
                 className="text-[#64FFDA] hover:underline text-sm"
               >
-                Clear filters
+                {messages.projects.clearFilters}
               </button>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
+      {totalPages > 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex items-center justify-center gap-3 mt-8 max-w-7xl mx-auto"
+        >
+          <motion.button
+            type="button"
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            whileHover={{ scale: currentPage === 1 ? 1 : 1.05 }}
+            whileTap={{ scale: currentPage === 1 ? 1 : 0.95 }}
+            className="p-3 rounded-lg border transition-all duration-300"
+            style={{
+              backgroundColor:
+                currentPage === 1
+                  ? "rgba(17, 34, 64, 0.3)"
+                  : "rgba(17, 34, 64, 0.5)",
+              borderColor:
+                currentPage === 1
+                  ? "rgba(35, 53, 84, 0.5)"
+                  : "rgba(100, 255, 218, 0.3)",
+              color: currentPage === 1 ? "#4A5568" : "#64FFDA",
+              cursor: currentPage === 1 ? "not-allowed" : "pointer",
+              opacity: currentPage === 1 ? 0.5 : 1,
+            }}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </motion.button>
+
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+              (pageNum) => {
+                const isActive = pageNum === currentPage;
+                const showPage =
+                  pageNum === 1 ||
+                  pageNum === totalPages ||
+                  Math.abs(pageNum - currentPage) <= 1;
+                const showEllipsisBefore = pageNum === 2 && currentPage > 3;
+                const showEllipsisAfter =
+                  pageNum === totalPages - 1 && currentPage < totalPages - 2;
+
+                if (!showPage && !showEllipsisBefore && !showEllipsisAfter) {
+                  return null;
+                }
+
+                if (showEllipsisBefore || showEllipsisAfter) {
+                  return (
+                    <span
+                      key={`ellipsis-${pageNum}`}
+                      className="px-2 text-[#8892B0]"
+                    >
+                      ···
+                    </span>
+                  );
+                }
+
+                return (
+                  <motion.button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    whileHover={{ scale: isActive ? 1 : 1.1 }}
+                    whileTap={{ scale: isActive ? 1 : 0.95 }}
+                    className="relative w-10 h-10 rounded-lg font-mono text-sm font-bold transition-all duration-300"
+                    style={{
+                      backgroundColor: isActive
+                        ? "#64FFDA"
+                        : "rgba(17, 34, 64, 0.5)",
+                      color: isActive ? "#0A192F" : "#8892B0",
+                      border: isActive
+                        ? "2px solid #64FFDA"
+                        : "1px solid rgba(35, 53, 84, 0.8)",
+                      boxShadow: isActive
+                        ? "0 0 20px rgba(100, 255, 218, 0.4)"
+                        : "none",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.borderColor =
+                          "rgba(100, 255, 218, 0.5)";
+                        e.currentTarget.style.color = "#E6F1FF";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.borderColor =
+                          "rgba(35, 53, 84, 0.8)";
+                        e.currentTarget.style.color = "#8892B0";
+                      }
+                    }}
+                  >
+                    {pageNum}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activePage"
+                        className="absolute inset-0 rounded-lg"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, rgba(100, 255, 218, 0.2), rgba(100, 255, 218, 0.05))",
+                        }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 30,
+                        }}
+                      />
+                    )}
+                  </motion.button>
+                );
+              },
+            )}
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
+            disabled={currentPage === totalPages}
+            whileHover={{ scale: currentPage === totalPages ? 1 : 1.05 }}
+            whileTap={{ scale: currentPage === totalPages ? 1 : 0.95 }}
+            className="p-3 rounded-lg border transition-all duration-300"
+            style={{
+              backgroundColor:
+                currentPage === totalPages
+                  ? "rgba(17, 34, 64, 0.3)"
+                  : "rgba(17, 34, 64, 0.5)",
+              borderColor:
+                currentPage === totalPages
+                  ? "rgba(35, 53, 84, 0.5)"
+                  : "rgba(100, 255, 218, 0.3)",
+              color: currentPage === totalPages ? "#4A5568" : "#64FFDA",
+              cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+              opacity: currentPage === totalPages ? 0.5 : 1,
+            }}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </motion.button>
+        </motion.div>
+      )}
+
       <AnimatePresence>
         {selectedProject && (
           <ProjectModal
             project={selectedProject}
             onClose={() => setSelectedProject(null)}
+            categoryLabel={getCategoryLabel(selectedProject.category)}
           />
         )}
       </AnimatePresence>
@@ -374,10 +430,11 @@ interface ProjectCardProps {
   isHovered: boolean;
   onHover: (id: number | null) => void;
   onClick: (project: Project) => void;
+  categoryLabel: string;
 }
 
 const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
-  ({ project, isHovered, onHover, onClick }, ref) => {
+  ({ project, isHovered, onHover, onClick, categoryLabel }, ref) => {
     return (
       <motion.div
         ref={ref}
@@ -433,7 +490,7 @@ const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
                   border: `1px solid ${project.color}60`,
                 }}
               >
-                {project.category}
+                {categoryLabel}
               </span>
 
               {project.pinned && (
@@ -495,9 +552,12 @@ const ProjectCard = React.forwardRef<HTMLDivElement, ProjectCardProps>(
 interface ProjectModalProps {
   project: Project;
   onClose: () => void;
+  categoryLabel: string;
 }
 
-function ProjectModal({ project, onClose }: ProjectModalProps) {
+function ProjectModal({ project, onClose, categoryLabel }: ProjectModalProps) {
+  const messages = useMessages();
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -535,7 +595,7 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
                   border: `1px solid ${project.color}40`,
                 }}
               >
-                {project.category}
+                {categoryLabel}
               </span>
               <div className="h-px w-10 bg-[#233554]" />
             </div>
@@ -573,7 +633,7 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
           <div className="grid md:grid-cols-[2fr_1fr] gap-8">
             <div>
               <h3 className="text-sm uppercase tracking-wider text-[#64FFDA] font-bold mb-4">
-                About Project
+                {messages.projects.aboutProject}
               </h3>
               <p className="text-base leading-relaxed text-[#8892B0] mb-6 whitespace-pre-line">
                 {project.longDescription || project.description}
@@ -582,7 +642,7 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
               {project.credits && (
                 <div className="mt-8 pt-6 border-t border-[#233554]/50">
                   <h3 className="text-xs uppercase tracking-wider text-[#8892B0] font-bold mb-3">
-                    Project Credits
+                    {messages.projects.projectCredits}
                   </h3>
                   <pre className="text-xs text-[#64FFDA] font-mono whitespace-pre-wrap leading-relaxed">
                     {project.credits}
@@ -593,7 +653,7 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
 
             <div className="bg-[#112240]/50 p-6 rounded-xl border border-[#233554]">
               <h3 className="text-sm uppercase tracking-wider text-[#E6F1FF] font-bold mb-4">
-                Technologies
+                {messages.projects.technologies}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {project.tags.map((tag, idx) => (
@@ -617,7 +677,7 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex-1 py-3 border rounded-lg flex items-center justify-center gap-2 transition-all font-mono font-bold text-sm"
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border py-3 text-sm font-mono font-bold transition-all"
               style={{
                 borderColor: project.color,
                 color: project.color,
@@ -630,7 +690,7 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
               }}
             >
               <Github className="w-4 h-4" />
-              SOURCE CODE
+              {messages.projects.sourceCode}
             </motion.a>
           )}
           {project.demo && (
@@ -640,7 +700,7 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex-1 py-3 rounded-lg flex items-center justify-center gap-2 transition-all font-mono font-bold text-sm shadow-lg"
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg py-3 text-sm font-mono font-bold shadow-lg transition-all"
               style={{
                 backgroundColor: project.color,
                 color: "#0A192F",
@@ -648,27 +708,24 @@ function ProjectModal({ project, onClose }: ProjectModalProps) {
               }}
             >
               <ExternalLink className="w-4 h-4" />
-              LIVE DEMO
+              {messages.projects.liveDemo}
             </motion.a>
           )}
-          {project.projectPage && (
-            <motion.a
-              href={project.projectPage}
-              target="_blank"
-              rel="noopener noreferrer"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex-1 py-3 border rounded-lg flex items-center justify-center gap-2 transition-all font-mono font-bold text-sm"
-              style={{
-                borderColor: "#233554",
-                color: "#8892B0",
-                backgroundColor: "transparent",
-              }}
-            >
-              <ArrowRight className="w-4 h-4" />
-              PROJECT PAGE
-            </motion.a>
-          )}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigateTo(buildProjectPath(project.slug))}
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border py-3 text-sm font-mono font-bold transition-all"
+            style={{
+              borderColor: "#233554",
+              color: "#8892B0",
+              backgroundColor: "transparent",
+            }}
+          >
+            <ArrowRight className="w-4 h-4" />
+            {messages.projects.projectPage}
+          </motion.button>
         </div>
       </motion.div>
     </motion.div>

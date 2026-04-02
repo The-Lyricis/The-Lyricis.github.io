@@ -14,10 +14,12 @@ import {
   Server,
   Terminal,
 } from "lucide-react";
+import { useMessages } from "../i18n";
 
 type ViewMode = "capabilities" | "pipeline";
 
 export function Services() {
+  const messages = useMessages();
   const [activeTab, setActiveTab] = useState<ViewMode>("capabilities");
   const [text, setText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -64,42 +66,42 @@ export function Services() {
     {
       icon: <Code2 className="w-5 h-5" />,
       title: "Shader Engineering",
-      desc: "Custom HLSL/GLSL shaders for unique visual identities.",
+      desc: messages.services.capabilities.shaderEngineering,
       tags: ["HLSL", "GLSL", "Node Graphs"],
       color: "#64FFDA",
     },
     {
       icon: <Cpu className="w-5 h-5" />,
       title: "Performance Ops",
-      desc: "Using profiling tools to identify bottlenecks and optimize CPU/GPU, memory, and draw calls for stable 60+ FPS.",
+      desc: messages.services.capabilities.performanceOps,
       tags: ["Profiler", "Frame Debugger", "GPU Timing"],
       color: "#4A9EFF",
     },
     {
       icon: <Terminal className="w-5 h-5" />,
       title: "Tool Development",
-      desc: "Editor extensions and CLI tools to accelerate art teams.",
+      desc: messages.services.capabilities.toolDevelopment,
       tags: ["Python", "C#", "Automation"],
       color: "#FF6B6B",
     },
     {
       icon: <Box className="w-5 h-5" />,
       title: "Procedural Tech",
-      desc: "Algorithmic generation for infinite worlds and assets.",
+      desc: messages.services.capabilities.proceduralTech,
       tags: ["PCG", "Houdini", "Runtime"],
       color: "#FFD93D",
     },
     {
       icon: <Layers className="w-5 h-5" />,
       title: "Render Pipelines",
-      desc: "Customizing scriptable render pipelines (URP/HDRP).",
+      desc: messages.services.capabilities.renderPipelines,
       tags: ["SRP", "Render Passes", "PostFX"],
       color: "#A78BFA",
     },
     {
       icon: <Server className="w-5 h-5" />,
       title: "Asset Pipelines",
-      desc: "Automated import/export and validation workflows.",
+      desc: messages.services.capabilities.assetPipelines,
       tags: ["CI/CD", "Validation", "SDKs"],
       color: "#EC4899",
     },
@@ -110,40 +112,40 @@ export function Services() {
       id: "01",
       icon: <Search className="w-5 h-5" />,
       title: "Discovery & Scope",
-      desc: "Clarify goals, constraints, and success metrics. Define budgets for frame time, memory, and visual targets before building.",
-      output: "Tech Brief + Budgets",
+      desc: messages.services.pipeline.discoveryScope.desc,
+      output: messages.services.pipeline.discoveryScope.output,
       color: "#64FFDA",
     },
     {
       id: "02",
       icon: <GitMerge className="w-5 h-5" />,
       title: "Prototype & Benchmark",
-      desc: "Build a focused prototype to validate feasibility. Benchmark early to de-risk performance and visual quality on target hardware.",
-      output: "Proof of Concept + Benchmark Report",
+      desc: messages.services.pipeline.prototypeBenchmark.desc,
+      output: messages.services.pipeline.prototypeBenchmark.output,
       color: "#4A9EFF",
     },
     {
       id: "03",
       icon: <Code2 className="w-5 h-5" />,
       title: "Implementation",
-      desc: "Develop modular, production-ready systems with clean interfaces. Keep them maintainable, testable, and easy to iterate on.",
-      output: "Production System",
+      desc: messages.services.pipeline.implementation.desc,
+      output: messages.services.pipeline.implementation.output,
       color: "#FF6B6B",
     },
     {
       id: "04",
       icon: <Monitor className="w-5 h-5" />,
       title: "Quality & Performance Pass",
-      desc: "Polish the experience to meet both visual and technical targets: readability, consistency, and frame-time stability. Iterate with profiling and visual reviews to make sure it feels right and runs well.",
-      output: "Quality-Approved Build",
+      desc: messages.services.pipeline.qualityPerformancePass.desc,
+      output: messages.services.pipeline.qualityPerformancePass.output,
       color: "#FFD93D",
     },
     {
       id: "05",
       icon: <Rocket className="w-5 h-5" />,
       title: "Delivery & Handoff",
-      desc: "Polish, document, and hand off with clear usage notes. Ensure the team can extend and troubleshoot confidently.",
-      output: "Shipped Feature + Documentation",
+      desc: messages.services.pipeline.deliveryHandoff.desc,
+      output: messages.services.pipeline.deliveryHandoff.output,
       color: "#A78BFA",
     },
   ];
@@ -188,7 +190,7 @@ export function Services() {
               ENGINEERING SYSTEMS
             </h2>
             <p className="text-[#8892B0] mt-2 max-w-md">
-              Bridging the gap between creative vision and technical reality.
+              {messages.services.subtitle}
             </p>
           </div>
 
@@ -329,7 +331,7 @@ export function Services() {
                         </div>
                         <div className="flex items-center gap-2 text-xs font-mono text-[#8892B0] bg-[#0a192f] px-3 py-1 rounded-full border border-[#233554]">
                           <CheckCircle className="w-3 h-3 text-[#64FFDA]" />
-                          OUTPUT: {step.output}
+                          {messages.services.outputLabel} {step.output}
                         </div>
                       </div>
                       <p className="text-[#8892B0] text-sm leading-relaxed pl-8 md:pl-0">

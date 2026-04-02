@@ -10,55 +10,51 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
+import { useMessages } from "../i18n";
 
 export function AboutSection() {
+  const messages = useMessages();
+
   const highlights = [
     {
       icon: <Code2 className="w-6 h-6" />,
       title: "Shader Development",
-      description:
-        "Writing custom HLSL/GLSL shaders to create unique visual identities",
+      description: messages.about.highlights.shaderDevelopment,
     },
     {
       icon: <Lightbulb className="w-6 h-6" />,
       title: "Gameplay Engineering",
-      description:
-        "Building robust systems that power engaging interactive experiences",
+      description: messages.about.highlights.gameplayEngineering,
     },
     {
       icon: <Cpu className="w-6 h-6" />,
       title: "Graphics Research",
-      description:
-        "Implementing cutting-edge rendering techniques from academic papers",
+      description: messages.about.highlights.graphicsResearch,
     },
     {
       icon: <Zap className="w-6 h-6" />,
       title: "Performance Optimization",
-      description:
-        "Profiling and optimizing to ensure 60+ FPS on target hardware",
+      description: messages.about.highlights.performanceOptimization,
     },
     {
       icon: <Wand2 className="w-6 h-6" />,
       title: "VFX Systems",
-      description:
-        "Designing complex particle systems and visual effects architectures",
+      description: messages.about.highlights.vfxSystems,
     },
     {
       icon: <Wrench className="w-6 h-6" />,
       title: "Tool Authoring",
-      description:
-        "Creating custom editors that streamline the artistic workflow",
+      description: messages.about.highlights.toolAuthoring,
     },
     {
       icon: <Box className="w-6 h-6" />,
       title: "Procedural Generation",
-      description: "Algorithmic creation of infinite worlds and assets",
+      description: messages.about.highlights.proceduralGeneration,
     },
     {
       icon: <Layers className="w-6 h-6" />,
       title: "Pipeline Architecture",
-      description:
-        "Automating the journey from content creation to game engine",
+      description: messages.about.highlights.pipelineArchitecture,
     },
   ];
 
@@ -98,15 +94,18 @@ export function AboutSection() {
             className="text-center mb-16 max-w-4xl mx-auto"
           >
             <p className="text-xl leading-loose mb-6" style={{ color: "#CCD6F6" }}>
-              I'm a <span style={{ color: "#64FFDA" }}>Technical Artist</span> and{" "}
-              <span style={{ color: "#4A9EFF" }}>Game Developer</span> focused on
-              real-time delivery: high-quality visuals, solid tooling, and
-              performance that holds up.
+              {messages.about.intro.prefix}
+              <span style={{ color: "#64FFDA" }}>
+                {messages.about.intro.technicalArtist}
+              </span>
+              {messages.about.intro.connector}
+              <span style={{ color: "#4A9EFF" }}>
+                {messages.about.intro.gameDeveloper}
+              </span>
+              {messages.about.intro.suffix}
             </p>
             <p className="text-lg leading-loose" style={{ color: "#8892B0" }}>
-              I build systems and workflows that reduce iteration cost, keep
-              frame-time stable, and help creative teams move faster from first
-              prototype to final polish.
+              {messages.about.summary}
             </p>
           </motion.div>
 

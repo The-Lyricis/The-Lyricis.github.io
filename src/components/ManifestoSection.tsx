@@ -6,8 +6,10 @@ import streetImage from "figma:asset/manifesto/street-moments.png";
 import glassImage from "figma:asset/manifesto/light-and-structure.png";
 import beachImage from "figma:asset/manifesto/perspective-beach.png";
 import nightVillageImage from "figma:asset/manifesto/nightscape-village.png";
+import { useMessages } from "../i18n";
 
 export function ManifestoSection() {
+  const messages = useMessages();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -170,38 +172,16 @@ export function ManifestoSection() {
                     className="absolute top-0 left-0 w-full"
                   >
                     <div className="space-y-6 text-lg text-[#8892B0] leading-relaxed pb-4 pt-2">
-                      <p>
-                        Outside of work, I stay close to art through drawing,
-                        photography, games, and films. I'm drawn to light,
-                        composition, and rhythm. I pay attention to how a scene
-                        is framed, how color sets the mood, and how pacing shapes
-                        emotion. These everyday observations quietly build my
-                        sense of taste, one detail at a time.
-                      </p>
-                      <p>
-                        Photography trains me to wait for the right moment: a
-                        subtle gesture, a shift of shadow, or a reflection that
-                        turns ordinary space into something cinematic. Drawing
-                        does the opposite. It slows time down and helps me break
-                        a scene into shapes and values, so I can understand why a
-                        visual choice feels balanced, tense, or calm.
-                      </p>
-                      <p>
-                        Games and films extend that practice into constructed
-                        worlds. I notice how environments guide the eye, how
-                        camera movement changes meaning, and how silence can be as
-                        expressive as action. Sometimes I pause just to take a
-                        photo in-game, because a single frame can carry
-                        atmosphere, story, and emotion without a line of
-                        dialogue.
-                      </p>
+                      {messages.manifesto.paragraphs.map((paragraph) => (
+                        <p key={paragraph}>{paragraph}</p>
+                      ))}
 
                       <div
                         onClick={() => setIsExpanded(false)}
                         className="pt-4 flex items-center gap-2 text-[#64FFDA] text-sm font-mono uppercase tracking-wider cursor-pointer opacity-60 hover:opacity-100 transition-opacity w-fit"
                       >
                         <ChevronUp className="w-4 h-4" />
-                        <span>Collapse</span>
+                        <span>{messages.manifesto.collapse}</span>
                       </div>
                     </div>
                   </motion.div>

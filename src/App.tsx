@@ -12,9 +12,16 @@ import { ParticleField } from "./components/ParticleField";
 import { ProjectGallery } from "./components/ProjectGallery";
 import { Services } from "./components/Services";
 import { TechStack } from "./components/TechStack";
+import { ProjectDetailPage } from "./pages/ProjectDetailPage";
+import {
+  getProjectSlugFromPath,
+  isProjectDetailPath,
+  subscribeNavigation,
+} from "./lib/routing";
 
 export default function App() {
   const [themeIndex, setThemeIndex] = useState(0);
+  const [pathname, setPathname] = useState(() => window.location.pathname);
 
   React.useEffect(() => {
     setThemeIndex(Math.floor(Math.random() * 5));
@@ -31,6 +38,16 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, []);
+
+  React.useEffect(() => {
+    return subscribeNavigation(() => {
+      setPathname(window.location.pathname);
+    });
+  }, []);
+
+  const projectSlug = isProjectDetailPath(pathname)
+    ? getProjectSlugFromPath(pathname)
+    : null;
 
   return (
     <div
@@ -54,26 +71,35 @@ export default function App() {
       />
 
       <div className="relative z-10">
-        <section id="home" data-particle-occluder>
-          <Hero />
-        </section>
-        <section id="about">
-          <AboutSection />
-        </section>
-        <ManifestoSection />
-        <section id="services">
-          <Services />
-        </section>
-        <TechStack />
-        <ExperienceTimeline />
-        <section id="featured-projects">
-          <ProjectGallery />
-        </section>
-        <section id="contact" data-particle-occluder>
-          <ContactSection />
-        </section>
-        <InteractiveFooter />
-        <BackToTop />
+        {projectSlug ? (
+          <>
+            <ProjectDetailPage slug={projectSlug} />
+            <InteractiveFooter />
+          </>
+        ) : (
+          <>
+            <section id="home" data-particle-occluder>
+              <Hero />
+            </section>
+            <section id="about">
+              <AboutSection />
+            </section>
+            <ManifestoSection />
+            <section id="services">
+              <Services />
+            </section>
+            <TechStack />
+            <ExperienceTimeline />
+            <section id="featured-projects">
+              <ProjectGallery />
+            </section>
+            <section id="contact" data-particle-occluder>
+              <ContactSection />
+            </section>
+            <InteractiveFooter />
+            <BackToTop />
+          </>
+        )}
       </div>
     </div>
   );

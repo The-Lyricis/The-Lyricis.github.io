@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { FolderGit2, Mail } from "lucide-react";
 import { CircuitLines } from "./CircuitLines";
 import { RobotWithLadder } from "./RobotWithLadder";
+import { useMessages } from "../i18n";
 
 type RepairableLetter = "J" | "Y";
 
@@ -21,6 +22,7 @@ type TitleBounds = {
 };
 
 export function Hero() {
+  const messages = useMessages();
   const trackedLetterIndices = [8, 16] as const;
   const [letterStates, setLetterStates] = useState<LetterState[]>([
     {
@@ -423,7 +425,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.6 }}
-          className="flex gap-4 justify-center"
+          className="flex flex-wrap items-center justify-center gap-4"
         >
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -447,7 +449,7 @@ export function Hero() {
             }}
           >
             <FolderGit2 className="w-5 h-5" />
-            View Projects
+            {messages.hero.viewProjects}
           </motion.button>
 
           <motion.button
@@ -475,7 +477,7 @@ export function Hero() {
             }}
           >
             <Mail className="w-5 h-5" />
-            Contact
+            {messages.hero.contact}
           </motion.button>
         </motion.div>
       </div>

@@ -1,8 +1,10 @@
 import React, { useRef, useState } from "react";
 import { motion } from "motion/react";
 import { Github, Linkedin, Mail } from "lucide-react";
+import { useMessages } from "../i18n";
 
 export function InteractiveFooter() {
+  const messages = useMessages();
   const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const idCounterRef = useRef(0);
@@ -32,7 +34,7 @@ export function InteractiveFooter() {
   const socials = [
     {
       icon: Mail,
-      label: "Email",
+      label: messages.footer.email,
       color: "#64FFDA",
       url: "mailto:pigchick1623@gmail.com",
     },
@@ -44,7 +46,7 @@ export function InteractiveFooter() {
     },
     {
       icon: Linkedin,
-      label: "LinkedIn",
+      label: messages.footer.linkedin,
       color: "#FF6B6B",
       url: "https://www.linkedin.com/feed/?trk=guest_homepage-basic_google-one-tap-submit",
     },
@@ -89,7 +91,7 @@ export function InteractiveFooter() {
           className="text-sm font-mono tracking-wide"
           style={{ color: "#8892B0" }}
         >
-          <p>© 2026 Jiliang Ye • Technical Artist & Game Developer</p>
+          <p>{messages.footer.copyright}</p>
         </motion.div>
       </div>
     </div>
