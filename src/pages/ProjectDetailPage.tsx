@@ -32,6 +32,14 @@ export function ProjectDetailPage({ slug }: ProjectDetailPageProps) {
     };
   }, [locale, slug]);
 
+  useEffect(() => {
+    if (isLoading || !project?.projectPage) {
+      return;
+    }
+
+    window.location.replace(project.projectPage);
+  }, [isLoading, project]);
+
   const handleBackToProjects = () => {
     navigateTo(buildHomeSectionPath("featured-projects"));
     requestAnimationFrame(() => {
@@ -67,6 +75,18 @@ export function ProjectDetailPage({ slug }: ProjectDetailPageProps) {
             <ArrowLeft className="w-4 h-4" />
             Back to Projects
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (project.projectPage) {
+    return (
+      <div className="relative z-10 px-8 pt-32 pb-20">
+        <div className="max-w-5xl mx-auto rounded-3xl border border-[#233554] bg-[#0A192F]/80 p-8 md:p-10">
+          <p className="text-[#64FFDA] font-mono tracking-wider">
+            Redirecting to project page...
+          </p>
         </div>
       </div>
     );

@@ -32,6 +32,8 @@ export function Navigation() {
 
   const currentLanguage =
     languages.find((language) => language.value === locale) ?? languages[0];
+  const resumeFileName = locale === "zh" ? "resume-zh.pdf" : "resume-en.pdf";
+  const resumeHref = `${import.meta.env.BASE_URL}${resumeFileName}`;
 
   const navItems: NavItem[] = [
     { id: "home", label: messages.navigation.home, href: "#home" },
@@ -118,13 +120,8 @@ export function Navigation() {
     });
   };
 
-  const handleResumeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const handleResumeClick = () => {
     setIsMobileMenuOpen(false);
-
-    if (isProjectDetailPath(window.location.pathname)) {
-      navigateTo(buildHomeSectionPath("home"));
-    }
   };
 
   const renderLanguageToggle = () => (
@@ -274,7 +271,8 @@ export function Navigation() {
             </motion.a>
 
             <motion.a
-              href="#resume"
+              href={resumeHref}
+              download={resumeFileName}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleResumeClick}
@@ -394,7 +392,8 @@ export function Navigation() {
                 ))}
 
                 <motion.a
-                  href="#resume"
+                  href={resumeHref}
+                  download={resumeFileName}
                   initial={{ opacity: 0, x: 50 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{

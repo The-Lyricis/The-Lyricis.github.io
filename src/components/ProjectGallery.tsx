@@ -123,6 +123,15 @@ export function ProjectGallery() {
   const getCategoryLabel = (category: string) =>
     messages.projects.categoryLabels[category] ?? category;
 
+  const openProject = (project: Project) => {
+    if (project.projectPage) {
+      window.location.assign(project.projectPage);
+      return;
+    }
+
+    setSelectedProject(project);
+  };
+
   return (
     <div className="min-h-screen px-8 py-20 relative">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#233554] to-transparent opacity-50" />
@@ -241,7 +250,7 @@ export function ProjectGallery() {
                 index={index}
                 isHovered={hoveredId === project.id}
                 onHover={setHoveredId}
-                onClick={setSelectedProject}
+                onClick={openProject}
                 categoryLabel={getCategoryLabel(project.category)}
               />
             ))
@@ -711,21 +720,40 @@ function ProjectModal({ project, onClose, categoryLabel }: ProjectModalProps) {
               {messages.projects.liveDemo}
             </motion.a>
           )}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigateTo(buildProjectPath(project.slug))}
-            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border py-3 text-sm font-mono font-bold transition-all"
-            style={{
-              borderColor: "#233554",
-              color: "#8892B0",
-              backgroundColor: "transparent",
-            }}
-          >
-            <ArrowRight className="w-4 h-4" />
-            {messages.projects.projectPage}
-          </motion.button>
+          {project.projectPage ? (
+            <motion.a
+              href={project.projectPage}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border py-3 text-sm font-mono font-bold transition-all"
+              style={{
+                borderColor: "#233554",
+                color: "#8892B0",
+                backgroundColor: "transparent",
+              }}
+            >
+              <ArrowRight className="w-4 h-4" />
+              {messages.projects.projectPage}
+            </motion.a>
+          ) : (
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigateTo(buildProjectPath(project.slug))}
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border py-3 text-sm font-mono font-bold transition-all"
+              style={{
+                borderColor: "#233554",
+                color: "#8892B0",
+                backgroundColor: "transparent",
+              }}
+            >
+              <ArrowRight className="w-4 h-4" />
+              {messages.projects.projectPage}
+            </motion.button>
+          )}
         </div>
       </motion.div>
     </motion.div>
