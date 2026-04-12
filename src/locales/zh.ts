@@ -4,10 +4,10 @@ const zh: Messages = {
   navigation: {
     home: "首页",
     about: "关于我",
-    services: "我能做什么",
+    services: "个人服务",
     skills: "技术栈",
     projects: "项目展示",
-    contact: "联系我",
+    contact: "联系方式",
     resume: "获取简历",
   },
   hero: {

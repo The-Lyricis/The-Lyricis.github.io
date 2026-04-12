@@ -8,6 +8,7 @@ import img2 from "figma:asset/projects/shader-factory-cover.png";
 import img3 from "figma:asset/projects/ray-marching-renderer-cover.png";
 import img5 from "figma:asset/projects/hda-hex-terrain-cover.png";
 import img6 from "figma:asset/projects/gpu-particle-system-cover.png";
+import cubieImg from "../assets/projects/cubie-cover.png";
 import christmasPsychoImg from "figma:asset/projects/christmas-psycho-cover.png";
 import hybridEngineImg from "figma:asset/projects/hybrid-engine-cover.png";
 import unselfImg from "figma:asset/projects/unself-cover.png";
@@ -86,6 +87,15 @@ const BASE_PROJECTS: BaseProject[] = [
     color: "#FFFFFF",
     image: christmasPsychoImg,
     demo: "https://www.gcores.com/games/148141",
+  },
+  {
+    id: 11,
+    slug: "cubie",
+    title: "Cubie",
+    category: "gamedev",
+    color: "#B88E84",
+    image: cubieImg,
+    demo: "https://pigchick.itch.io/cubie",
   },
   {
     id: 1,

@@ -6,15 +6,7 @@ const zh: ProjectContentMap = {
       "一款以解谜推进的黑白视觉小说，通过宇宙恐惧氛围讨论身份与自我映照。",
     longDescription:
       "UNSELF 是一款以解谜推进的视觉小说，画面由颤动的黑白线条构成，像墨迹和阴影在缓慢呼吸。故事发生在带有宇宙恐惧色彩的世界里：主角每天醒来，都会在镜中看到一张不同的脸，于是不断进行微小的调整、遮掩与试探，想确认那个“真正的自己”是否存在。整部作品把重心放在氛围、反射、含混和持续的不安上，让视觉本身也成为叙事的一部分。\n\n亮点:\n- 视觉叙事优先：用颤动线条和“会呼吸”的黑暗传递情绪\n- 解谜 + VN 结构：轻量谜题推动剧情，也强化“映照”主题\n- 宇宙恐惧气质：依靠克制、仪式感和不安，而不是跳吓\n- Jam 交付：在较短时间内完成聚焦范围和整体打磨",
-    tags: [
-      "解谜 VN",
-      "宇宙恐惧",
-      "手绘",
-      "叙事",
-      "Game Jam",
-      "独立游戏",
-      "实验性",
-    ],
+    tags: ["叙事", "解谜", "宇宙恐惧", "Game Jam"],
     credits:
       "项目成员: Jiliang Ye, Ao Wang, Zhengyang Gu, Yuxi Guo, Hang Wan\n音频: Epidemic Sound（音乐与音效）\n字体: Estonia",
   },
@@ -24,14 +16,21 @@ const zh: ProjectContentMap = {
       "操控一只好奇的小鸡，在色彩明快的世界中探索、战斗并解锁新能力。",
     longDescription:
       "玩家将扮演一只好奇的小鸡，在充满敌人、秘密和新能力的世界里前进。随着关卡推进，你会逐步解锁新的移动与战斗能力，探索更多路径，并在旅途中救出被困的猪伙伴。",
-    tags: ["2D", "像素风", "Aseprite", "动作冒险", "探索", "战斗"],
+    tags: ["2D", "像素风", "动作冒险", "探索"],
   },
   "7": {
     description:
       "一款 15 天完成的解谜游戏，采用夸张手绘风格和轻喜剧叙事。",
     longDescription:
       "这是一款在 15 天内完成的短篇叙事解谜游戏。作品以手绘、诙谐的视觉风格为基础，让玩家在紧凑的场景中探索、收集线索并解决小型逻辑谜题，推动故事向前。整体重点放在清晰交互、可读构图和节奏明确的喜剧表达上。",
-    tags: ["Game Jam", "15 天开发", "2D", "解谜", "叙事", "喜剧", "手绘"],
+    tags: ["Game Jam", "解谜", "叙事", "喜剧"],
+  },
+  "11": {
+    description:
+      "\u4e00\u6b3e\u4ee5 mask \u4e3a\u4e3b\u9898\u7684\u4fef\u89c6\u89d2\u683c\u5b50\u89e3\u8c1c Game Jam \u9879\u76ee\uff0c\u73a9\u5bb6\u53ef\u4ee5\u901a\u8fc7\u6234\u4e0a\u9762\u5177\u53bb\u540c\u6b65\u63a7\u5236\u540c\u8272\u7684\u5143\u7d20\u5c0f\u4eba\u3002",
+    longDescription:
+      "\u300aCubie\u300b\u662f\u4e00\u6b3e\u56f4\u7ed5 mask \u4e3b\u9898\u5c55\u5f00\u7684\u4fef\u89c6\u89d2\u3001\u683c\u5b50\u5236\u89e3\u8c1c\u539f\u578b\u3002\u5728 Demo \u4e2d\uff0c\u73a9\u5bb6\u9700\u8981\u5728\u7d27\u51d1\u7684\u5173\u5361\u91cc\u5bfb\u627e\u9762\u5177\uff0c\u901a\u8fc7\u6234\u4e0a\u4e0d\u540c\u989c\u8272\u7684\u9762\u5177\u63a5\u7ba1\u5bf9\u5e94\u989c\u8272\u7684\u5143\u7d20\u5c0f\u4eba\uff0c\u5e76\u5229\u7528\u5b83\u4eec\u7684\u79fb\u52a8\u3001\u963b\u6321\u548c\u5730\u5f62\u4ea4\u4e92\u6765\u63a8\u8fdb\u89e3\u8c1c\u3002\n\n\u5b83\u7684\u6838\u5fc3\u8bbe\u8ba1\u4e0d\u662f\u5355\u4e2a\u89d2\u8272\u7684\u80fd\u529b\u8df3\u8dc3\uff0c\u800c\u662f\u7c7b\u63a8\u7bb1\u5b50\u5f0f\u7684\u4f4d\u7f6e\u63a8\u6f14\u548c\u540c\u6b65\u63a7\u5236\u3002\u5f53\u73a9\u5bb6\u6234\u4e0a\u9762\u5177\u540e\uff0c\u540c\u8272 Actor \u4f1a\u54cd\u5e94\u540c\u4e00\u4e2a\u8f93\u5165\u65b9\u5411\uff0c\u56e0\u6b64\u5982\u4f55\u5229\u7528\u5361\u4f4d\u3001\u987a\u5e8f\u3001\u969c\u788d\u548c\u5371\u9669\u5730\u8868\u53bb\u8c03\u6574\u961f\u5f62\uff0c\u5c31\u6210\u4e3a\u4e86\u8c1c\u9898\u7684\u5173\u952e\u3002",
+    tags: ["\u4fef\u89c6\u89d2", "\u683c\u5b50\u89e3\u8c1c", "\u9762\u5177\u63a7\u5236", "Game Jam"],
   },
   "1": {
     subtitle: "个人 Shader 学习库与效果研究集",
@@ -46,37 +45,28 @@ const zh: ProjectContentMap = {
       "基于 Compute Shader 实现的百万粒子模拟系统，支持碰撞和多种力场控制。",
     longDescription:
       "项目实现了一个基于 Compute Shader 的百万粒子模拟系统，包含碰撞检测、力场控制、粒子生成模式，并针对移动端做了实时性能优化。",
-    tags: ["Compute Shader", "GPU", "VFX", "优化"],
+    tags: ["Compute Shader", "GPU", "粒子", "VFX"],
   },
   "4": {
     description:
       "把 Houdini Digital Asset 工作流接入 Unity，实现可控且高效的程序化地形生成。",
     longDescription:
       "该项目把 Houdini Digital Asset 工作流整合进 Unity，用于快速、可控地生成六边形地形。关键参数通过清晰的界面暴露给使用者，便于在布局、密度和形状上快速迭代，同时保证结果稳定、可复现。\n\n关键特性:\n- 参数化生成：支持尺寸、噪声、衰减和分布的实时调节\n- 结果可复现：基于 seed 的输出保证跨会话稳定\n- 友好的 Unity 工作流：一键烘焙或导出 Mesh 供后续使用\n- 面向美术的控制：参数分组清晰、默认值合理，便于快速调优",
-    tags: ["Houdini Engine", "HDA", "Unity", "程序化生成", "VEX"],
+    tags: ["Houdini", "Unity", "程序化生成", "工具开发"],
   },
   "6": {
     description:
       "一个支持体积雾和软阴影的实时 SDF 光线步进渲染器。",
     longDescription:
       "项目实现了一个基于 SDF 的实时光线步进渲染器，支持体积雾、软阴影和环境光遮蔽，并通过距离场缓存优化，让中端硬件也能接近 60 FPS 运行。",
-    tags: ["GLSL", "Ray Marching", "SDF", "实时图形"],
+    tags: ["GLSL", "Ray Marching", "SDF", "实时渲染"],
   },
   "10": {
     description:
       "一个围绕现代引擎架构、核心系统实现和编辑器工具展开的个人引擎学习项目。",
     longDescription:
       "Hybrid Engine 是我用来研究现代引擎架构的个人项目，重点在于通过亲手实现去理解运行时系统如何协作、模块边界应该如何划分，以及编辑器工作流如何反向影响底层设计。\n\n关键特性:\n- 运行时基础：日志、事件、输入、窗口管理和主循环\n- OpenGL 渲染后端：基于 framebuffer 的渲染流程和 Scene / Game 双视口\n- 基于 EnTT 的 ECS 架构：支持场景序列化和层级数据\n- 编辑器工具：Docking UI、Hierarchy、Inspector、Scene View、Gizmo 交互与对象拾取\n- 资源管线基础：VFS、注册表、.meta 文件以及纹理、模型、材质、场景的导入流程\n- 基础光照：支持方向光和点光源\n- 初步物理：支持 AABB 碰撞和刚体迭代",
-    tags: [
-      "C++17",
-      "OpenGL",
-      "ECS",
-      "CMake",
-      "引擎开发",
-      "编辑器",
-      "资源管线",
-      "物理",
-    ],
+    tags: ["C++", "OpenGL", "ECS", "编辑器"],
   },
 };
 

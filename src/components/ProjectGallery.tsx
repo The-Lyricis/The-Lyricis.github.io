@@ -124,11 +124,6 @@ export function ProjectGallery() {
     messages.projects.categoryLabels[category] ?? category;
 
   const openProject = (project: Project) => {
-    if (project.projectPage) {
-      window.location.assign(project.projectPage);
-      return;
-    }
-
     setSelectedProject(project);
   };
 
@@ -686,16 +681,19 @@ function ProjectModal({ project, onClose, categoryLabel }: ProjectModalProps) {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border py-3 text-sm font-mono font-bold transition-all"
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border-2 py-3 text-sm font-mono font-bold group relative overflow-hidden transition-all"
               style={{
-                borderColor: project.color,
-                color: project.color,
+                borderColor: "#64FFDA",
+                color: "#64FFDA",
+                backgroundColor: "transparent",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = `${project.color}10`;
+                e.currentTarget.style.backgroundColor = "rgba(100, 255, 218, 0.1)";
+                e.currentTarget.style.boxShadow = "0 0 15px rgba(100, 255, 218, 0.3)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               <Github className="w-4 h-4" />
@@ -709,11 +707,22 @@ function ProjectModal({ project, onClose, categoryLabel }: ProjectModalProps) {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg py-3 text-sm font-mono font-bold shadow-lg transition-all"
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border-2 py-3 text-sm font-mono font-bold relative overflow-hidden transition-all"
               style={{
-                backgroundColor: project.color,
+                backgroundColor: "#64FFDA",
                 color: "#0A192F",
-                boxShadow: `0 0 20px ${project.color}40`,
+                borderColor: "#64FFDA",
+                boxShadow: "0 0 20px rgba(100, 255, 218, 0.4)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#7DFFEB";
+                e.currentTarget.style.borderColor = "#7DFFEB";
+                e.currentTarget.style.boxShadow = "0 0 25px rgba(100, 255, 218, 0.6)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#64FFDA";
+                e.currentTarget.style.borderColor = "#64FFDA";
+                e.currentTarget.style.boxShadow = "0 0 20px rgba(100, 255, 218, 0.4)";
               }}
             >
               <ExternalLink className="w-4 h-4" />
@@ -727,11 +736,23 @@ function ProjectModal({ project, onClose, categoryLabel }: ProjectModalProps) {
               rel="noopener noreferrer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border py-3 text-sm font-mono font-bold transition-all"
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border-2 py-3 text-sm font-mono font-bold group relative overflow-hidden transition-all"
               style={{
-                borderColor: "#233554",
-                color: "#8892B0",
+                borderColor: "#E6F1FF",
+                color: "#E6F1FF",
                 backgroundColor: "transparent",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(230, 241, 255, 0.1)";
+                e.currentTarget.style.borderColor = "#FFFFFF";
+                e.currentTarget.style.color = "#FFFFFF";
+                e.currentTarget.style.boxShadow = "0 0 15px rgba(230, 241, 255, 0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.borderColor = "#E6F1FF";
+                e.currentTarget.style.color = "#E6F1FF";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               <ArrowRight className="w-4 h-4" />
@@ -743,11 +764,23 @@ function ProjectModal({ project, onClose, categoryLabel }: ProjectModalProps) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigateTo(buildProjectPath(project.slug))}
-              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border py-3 text-sm font-mono font-bold transition-all"
+              className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border-2 py-3 text-sm font-mono font-bold group relative overflow-hidden transition-all"
               style={{
-                borderColor: "#233554",
-                color: "#8892B0",
+                borderColor: "#E6F1FF",
+                color: "#E6F1FF",
                 backgroundColor: "transparent",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(230, 241, 255, 0.1)";
+                e.currentTarget.style.borderColor = "#FFFFFF";
+                e.currentTarget.style.color = "#FFFFFF";
+                e.currentTarget.style.boxShadow = "0 0 15px rgba(230, 241, 255, 0.3)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.borderColor = "#E6F1FF";
+                e.currentTarget.style.color = "#E6F1FF";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               <ArrowRight className="w-4 h-4" />
