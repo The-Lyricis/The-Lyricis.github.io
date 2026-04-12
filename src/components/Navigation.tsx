@@ -37,7 +37,7 @@ export function Navigation() {
 
   const navItems: NavItem[] = [
     { id: "home", label: messages.navigation.home, href: "#home" },
-    { id: "about", label: messages.navigation.about, href: "#about" },
+    { id: "about", label: messages.navigation.about, href: "#be-an-artist" },
     { id: "services", label: messages.navigation.services, href: "#services" },
     { id: "skills", label: messages.navigation.skills, href: "#skills" },
     { id: "projects", label: messages.navigation.projects, href: "#projects" },
@@ -91,7 +91,7 @@ export function Navigation() {
 
     const sectionMap: Record<string, string> = {
       home: "home",
-      about: "about",
+      about: "be-an-artist",
       services: "services",
       skills: "skills",
       projects: "featured-projects",

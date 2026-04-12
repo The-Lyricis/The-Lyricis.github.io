@@ -24,6 +24,9 @@ export interface Messages {
     highlights: Record<string, string>;
   };
   manifesto: {
+    eyebrow: string;
+    collapsedLead: string;
+    collapsedAccent: string;
     paragraphs: string[];
     collapse: string;
   };
@@ -50,6 +53,7 @@ export interface Messages {
     projectPage: string;
   };
   contact: {
+    title: string;
     errors: {
       nameRequired: string;
       nameMin: string;

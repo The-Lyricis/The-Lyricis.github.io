@@ -40,8 +40,6 @@ export function ContactSection() {
 
     if (!formData.name.trim()) {
       newErrors.name = messages.contact.errors.nameRequired;
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = messages.contact.errors.nameMin;
     }
 
     if (!formData.email.trim()) {
@@ -52,14 +50,10 @@ export function ContactSection() {
 
     if (!formData.subject.trim()) {
       newErrors.subject = messages.contact.errors.subjectRequired;
-    } else if (formData.subject.trim().length < 3) {
-      newErrors.subject = messages.contact.errors.subjectMin;
     }
 
     if (!formData.message.trim()) {
       newErrors.message = messages.contact.errors.messageRequired;
-    } else if (formData.message.trim().length < 10) {
-      newErrors.message = messages.contact.errors.messageMin;
     }
 
     setErrors(newErrors);
@@ -127,7 +121,7 @@ export function ContactSection() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-800 mb-6">
-            Let's Create Something Extraordinary
+            {messages.contact.title}
           </h2>
           <div className="h-1 w-20 bg-teal-400 mx-auto rounded-full mb-8" />
 

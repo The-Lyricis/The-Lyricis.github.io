@@ -66,6 +66,27 @@ type TitleBounds = {
   height: number;
 };
 
+type RouteWorkerRequest = {
+  id: number;
+  start: Anchor;
+  end: Anchor;
+  occupiedEdges: string[];
+  occupiedPoints: string[];
+  layout: Layout;
+  options: {
+    kind: LineKind;
+    maxTurns: number;
+    turnPenalty: number;
+    busPoints?: string[];
+    preferBus?: boolean;
+  };
+};
+
+type RouteWorkerResponse = {
+  id: number;
+  route: GridPt[] | null;
+};
+
 const GRID = 20;
 const MARGIN = 60;
 
@@ -262,6 +283,40 @@ function getLineTargets(width: number, height: number) {
   const initial = clamp(min + 1, min, max);
 
   return { min, max, initial };
+}
+
+function getCanvasDpr(width: number) {
+  const tier = getCircuitPerformanceTier(width);
+  const deviceDpr = window.devicePixelRatio || 1;
+
+  if (tier === "low") return Math.min(deviceDpr, 1);
+  if (tier === "medium") return Math.min(deviceDpr, 1.25);
+  return Math.min(deviceDpr, MAX_CANVAS_DPR);
+}
+
+function scheduleIdleTask(callback: () => void) {
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number;
+  };
+
+  if (idleWindow.requestIdleCallback) {
+    return idleWindow.requestIdleCallback(callback, { timeout: 120 });
+  }
+
+  return window.setTimeout(callback, 0);
+}
+
+function cancelIdleTask(handle: number) {
+  const idleWindow = window as Window & {
+    cancelIdleCallback?: (id: number) => void;
+  };
+
+  if (idleWindow.cancelIdleCallback) {
+    idleWindow.cancelIdleCallback(handle);
+    return;
+  }
+
+  window.clearTimeout(handle);
 }
 
 function toPixel(point: GridPt, layout: Layout): Pt {
@@ -739,6 +794,7 @@ type PolylineMetrics = {
   points: Pt[];
   lengths: number[];
   totalLength: number;
+  path: Path2D;
 };
 
 type RenderStroke = {
@@ -822,14 +878,17 @@ function buildPolylineMetrics(points: Pt[]): PolylineMetrics | null {
   if (points.length < 2) return null;
 
   const lengths: number[] = [0];
+  const path = new Path2D();
+  path.moveTo(points[0].x, points[0].y);
   for (let i = 1; i < points.length; i += 1) {
     lengths[i] = lengths[i - 1] + dist(points[i - 1], points[i]);
+    path.lineTo(points[i].x, points[i].y);
   }
 
   const totalLength = lengths[lengths.length - 1];
   if (totalLength <= 0.001) return null;
 
-  return { points, lengths, totalLength };
+  return { points, lengths, totalLength, path };
 }
 
 function buildCircuitRenderMetricsMap(circuitRenderPointMap: Map<string, RenderStroke[]>) {
@@ -1093,40 +1152,30 @@ function clipBusLaneToTargetFace(
   return result.length >= 2 ? result : null;
 }
 
-function buildSubPath(metrics: PolylineMetrics, startFrac: number, endFrac: number) {
+function getSegmentDistances(metrics: PolylineMetrics, startFrac: number, endFrac: number) {
   const startDistance = clamp(startFrac, 0, 1) * metrics.totalLength;
   const endDistance = clamp(endFrac, 0, 1) * metrics.totalLength;
 
-  if (endDistance - startDistance <= 0.5) return null;
-
-  const result: Pt[] = [samplePointAtDistance(metrics, startDistance)];
-
-  for (let i = 1; i < metrics.points.length - 1; i += 1) {
-    if (metrics.lengths[i] > startDistance && metrics.lengths[i] < endDistance) {
-      result.push(metrics.points[i]);
-    }
-  }
-
-  result.push(samplePointAtDistance(metrics, endDistance));
-  return result.length >= 2 ? result : null;
+  return {
+    startDistance,
+    endDistance,
+    visibleLength: endDistance - startDistance,
+  };
 }
 
-function strokePolyline(
+function strokePolylineSegment(
   ctx: CanvasRenderingContext2D,
-  points: Pt[],
+  metrics: PolylineMetrics,
+  startDistance: number,
+  visibleLength: number,
   lineWidth: number,
   strokeStyle: string | CanvasGradient,
   alpha: number,
   shadowBlur = 0,
 ) {
-  if (points.length < 2 || alpha <= 0.001 || lineWidth <= 0.001) return;
+  if (visibleLength <= 0.5 || alpha <= 0.001 || lineWidth <= 0.001) return;
 
   ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (let i = 1; i < points.length; i += 1) {
-    ctx.lineTo(points[i].x, points[i].y);
-  }
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.lineWidth = lineWidth;
@@ -1134,7 +1183,9 @@ function strokePolyline(
   ctx.strokeStyle = strokeStyle;
   ctx.shadowBlur = shadowBlur;
   ctx.shadowColor = typeof strokeStyle === "string" ? strokeStyle : "#64FFDA";
-  ctx.stroke();
+  ctx.setLineDash([visibleLength, metrics.totalLength + visibleLength + 4]);
+  ctx.lineDashOffset = -startDistance;
+  ctx.stroke(metrics.path);
   ctx.restore();
 }
 
@@ -1178,33 +1229,37 @@ function drawCircuitStroke(
       : Math.max(0, moveProgress - trailWindow);
   const headStartFrac = Math.max(startFrac, moveProgress - headWindow);
 
-  const trailPoints = buildSubPath(metrics, startFrac, moveProgress);
-  if (!trailPoints) return;
+  const trailSegment = getSegmentDistances(metrics, startFrac, moveProgress);
+  if (trailSegment.visibleLength <= 0.5) return;
 
   const trailAlphaBase = circuit.kind === "bus" ? 0.48 : 0.36;
   const trailColor = circuit.kind === "bus" ? "#3FAF9D" : "#2F8D80";
-  strokePolyline(
+  strokePolylineSegment(
     ctx,
-    trailPoints,
+    metrics,
+    trailSegment.startDistance,
+    trailSegment.visibleLength,
     circuit.strokeWidth,
     trailColor,
     trailAlphaBase * (1 - fadeProgress * 0.9),
     circuit.kind === "bus" ? 3 : 2,
   );
 
-  const headPoints = buildSubPath(metrics, headStartFrac, moveProgress);
-  if (!headPoints) return;
+  const headSegment = getSegmentDistances(metrics, headStartFrac, moveProgress);
+  if (headSegment.visibleLength <= 0.5) return;
+  const headStart = samplePointAtDistance(metrics, headSegment.startDistance);
+  const headEnd = samplePointAtDistance(metrics, headSegment.endDistance);
 
   if (circuit.kind === "bus") {
-    const headStart = headPoints[0];
-    const headEnd = headPoints[headPoints.length - 1];
     const gradient = ctx.createLinearGradient(headStart.x, headStart.y, headEnd.x, headEnd.y);
     gradient.addColorStop(0, "rgba(76, 173, 156, 0)");
     gradient.addColorStop(0.55, "rgba(92, 196, 178, 0.28)");
     gradient.addColorStop(1, "rgba(171, 245, 231, 0.82)");
-    strokePolyline(
+    strokePolylineSegment(
       ctx,
-      headPoints,
+      metrics,
+      headSegment.startDistance,
+      headSegment.visibleLength,
       circuit.strokeWidth + 0.55,
       gradient,
       0.9 - fadeProgress * 0.82,
@@ -1213,9 +1268,11 @@ function drawCircuitStroke(
     return;
   }
 
-  strokePolyline(
+  strokePolylineSegment(
     ctx,
-    headPoints,
+    metrics,
+    headSegment.startDistance,
+    headSegment.visibleLength,
     circuit.strokeWidth + 0.18,
     "#8FD8CB",
     0.62 - fadeProgress * 0.48,
@@ -2010,9 +2067,18 @@ export function CircuitLines({
   const spawnCacheRef = useRef<SpawnCache>(createEmptySpawnCache());
   const circuitRenderMetricsRef = useRef<Map<string, RenderStrokeMetrics[]>>(new Map());
   const nextIdRef = useRef(0);
+  const generationTokenRef = useRef(0);
+  const spawnInFlightRef = useRef(false);
+  const routeWorkerRef = useRef<Worker | null>(null);
+  const routeRequestIdRef = useRef(0);
+  const pendingRouteRequestsRef = useRef<
+    Map<number, (route: GridPt[] | null) => void>
+  >(new Map());
   const removalTimersRef = useRef<Map<string, number>>(new Map());
   const spawnLoopTimerRef = useRef<number | null>(null);
   const refillTimerRef = useRef<number | null>(null);
+  const idleSpawnRef = useRef<number | null>(null);
+  const pendingSpawnTargetRef = useRef<number | null>(null);
   const resizeTimerRef = useRef<number | null>(null);
 
   const layout = useMemo(
@@ -2062,6 +2128,28 @@ export function CircuitLines({
     },
     [layout],
   );
+
+  useEffect(() => {
+    const worker = new Worker(
+      new URL("./circuitRoute.worker.ts", import.meta.url),
+      { type: "module" },
+    );
+
+    routeWorkerRef.current = worker;
+    worker.onmessage = (event: MessageEvent<RouteWorkerResponse>) => {
+      const resolve = pendingRouteRequestsRef.current.get(event.data.id);
+      if (!resolve) return;
+
+      pendingRouteRequestsRef.current.delete(event.data.id);
+      resolve(event.data.route);
+    };
+
+    return () => {
+      pendingRouteRequestsRef.current.clear();
+      worker.terminate();
+      routeWorkerRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -2120,6 +2208,8 @@ export function CircuitLines({
   }, []);
 
   const clearTimers = useCallback(() => {
+    generationTokenRef.current += 1;
+    spawnInFlightRef.current = false;
     removalTimersRef.current.forEach((timer) => window.clearTimeout(timer));
     removalTimersRef.current.clear();
     if (spawnLoopTimerRef.current) {
@@ -2130,6 +2220,12 @@ export function CircuitLines({
       window.clearTimeout(refillTimerRef.current);
       refillTimerRef.current = null;
     }
+    if (idleSpawnRef.current !== null) {
+      cancelIdleTask(idleSpawnRef.current);
+      idleSpawnRef.current = null;
+    }
+    pendingRouteRequestsRef.current.clear();
+    pendingSpawnTargetRef.current = null;
   }, []);
 
   const removeCircuit = useCallback(
@@ -2158,36 +2254,288 @@ export function CircuitLines({
     [layout, syncPartialRenderMetrics],
   );
 
+  const findRouteAsync = useCallback(
+    (
+      start: Anchor,
+      end: Anchor,
+      occupiedEdges: Set<string>,
+      occupiedPoints: Set<string>,
+      currentLayout: Layout,
+      options: RouteOptions,
+    ) => {
+      const worker = routeWorkerRef.current;
+      if (!worker) {
+        return Promise.resolve(
+          findRoute(
+            start,
+            end,
+            occupiedEdges,
+            occupiedPoints,
+            currentLayout,
+            options,
+          ),
+        );
+      }
+
+      const id = routeRequestIdRef.current++;
+      const request: RouteWorkerRequest = {
+        id,
+        start,
+        end,
+        occupiedEdges: Array.from(occupiedEdges),
+        occupiedPoints: Array.from(occupiedPoints),
+        layout: currentLayout,
+        options: {
+          kind: options.kind,
+          maxTurns: options.maxTurns,
+          turnPenalty: options.turnPenalty,
+          busPoints: options.busPoints ? Array.from(options.busPoints) : undefined,
+          preferBus: options.preferBus,
+        },
+      };
+
+      return new Promise<GridPt[] | null>((resolve) => {
+        pendingRouteRequestsRef.current.set(id, resolve);
+        worker.postMessage(request);
+      });
+    },
+    [],
+  );
+
+  const createCircuitAsync = useCallback(
+    async (
+      id: string,
+      kind: LineKind,
+      now: number,
+      existingCircuits: Circuit[],
+      spawnCache: SpawnCache,
+      currentLayout: Layout,
+      currentEdgeAnchors: Anchor[],
+      currentInnerAnchors: Anchor[],
+      currentRingAnchors: Anchor[],
+      generation: number,
+    ): Promise<Circuit | null> => {
+      const { occupiedEdges, occupiedPoints, regionCounts, busPoints } = spawnCache;
+
+      for (let attempt = 0; attempt < 28; attempt += 1) {
+        if (generationTokenRef.current !== generation) return null;
+
+        const selection =
+          kind === "bus"
+            ? chooseBusAnchors(
+                existingCircuits,
+                currentLayout,
+                currentEdgeAnchors,
+                currentRingAnchors,
+              )
+            : chooseTraceAnchors(
+                existingCircuits,
+                currentLayout,
+                currentEdgeAnchors,
+                currentRingAnchors,
+              );
+
+        if (!selection) continue;
+
+        const { start, end } = selection;
+        const side = start.side;
+        if (!side) continue;
+
+        const shouldTryJoinBus =
+          kind === "trace" &&
+          busPoints.size > 0 &&
+          Math.random() < 0.35;
+
+        let route: GridPt[] | null = null;
+
+        if (kind === "trace" && Math.random() < 0.68) {
+          const waypoint = chooseWaypoint(
+            start,
+            end,
+            currentInnerAnchors,
+            currentRingAnchors,
+            currentLayout,
+          );
+
+          if (waypoint) {
+            const firstLeg = await findRouteAsync(
+              start,
+              waypoint,
+              occupiedEdges,
+              occupiedPoints,
+              currentLayout,
+              {
+                kind: "trace",
+                maxTurns: TRACE_MAX_TURNS,
+                turnPenalty: 0.42,
+                busPoints,
+                preferBus: shouldTryJoinBus,
+              },
+            );
+
+            if (generationTokenRef.current !== generation) return null;
+
+            if (firstLeg && firstLeg.length >= 3) {
+              const stagedCache = cloneSpawnCache(spawnCache);
+              addRouteToOccupancy(
+                firstLeg,
+                stagedCache.occupiedEdges,
+                stagedCache.occupiedPoints,
+              );
+
+              const secondLeg = await findRouteAsync(
+                waypoint,
+                end,
+                stagedCache.occupiedEdges,
+                stagedCache.occupiedPoints,
+                currentLayout,
+                {
+                  kind: "trace",
+                  maxTurns: TRACE_MAX_TURNS,
+                  turnPenalty: 0.42,
+                  busPoints,
+                  preferBus: shouldTryJoinBus,
+                },
+              );
+
+              if (generationTokenRef.current !== generation) return null;
+
+              if (secondLeg && secondLeg.length >= 3) {
+                route = mergeRoutes(firstLeg, secondLeg);
+              }
+            }
+          }
+        }
+
+        if (!route) {
+          route = await findRouteAsync(
+            start,
+            end,
+            occupiedEdges,
+            occupiedPoints,
+            currentLayout,
+            {
+              kind,
+              maxTurns: kind === "bus" ? BUS_MAX_TURNS : TRACE_MAX_TURNS,
+              turnPenalty: kind === "bus" ? 0.78 : 0.42,
+              busPoints: kind === "trace" ? busPoints : undefined,
+              preferBus: shouldTryJoinBus,
+            },
+          );
+
+          if (generationTokenRef.current !== generation) return null;
+        }
+
+        let traceJoin: TraceBusJoin | undefined;
+
+        if (!route || route.length < 5) continue;
+        if (kind === "trace" && shouldTryJoinBus) {
+          traceJoin = attachTraceToBus(route, existingCircuits, currentLayout, side);
+          if (traceJoin) {
+            route = traceJoin.route;
+          }
+        }
+        if (hasSelfOverlap(route)) continue;
+
+        const turnCount = countTurns(route);
+        if (turnCount < (kind === "bus" ? BUS_MIN_TURNS : TRACE_MIN_TURNS)) continue;
+        if (turnCount > (kind === "bus" ? BUS_MAX_TURNS : TRACE_MAX_TURNS)) continue;
+
+        const regionKey = getRegionKey(route, currentLayout);
+        const regionCount = regionCounts.get(regionKey) || 0;
+        if (kind === "trace" && attempt < 18 && regionCount >= MAX_LINES_PER_REGION) {
+          continue;
+        }
+
+        const laneRank =
+          kind === "trace" && traceJoin
+            ? countBusLaneAttachments(
+                existingCircuits,
+                traceJoin.bus.id,
+                traceJoin.laneSide,
+              ) + 1
+            : 0;
+        const { d, nodes } = buildPathData(
+          route,
+          currentLayout,
+          kind !== "bus" && !traceJoin,
+        );
+        const defaultDrawDuration =
+          kind === "bus" ? rand(2.6, 3.8) : rand(1.4, 2.4);
+        const defaultHoldDuration =
+          kind === "bus" ? rand(3.1, 4.6) : rand(1.2, 2.8);
+        const defaultFadeDuration =
+          kind === "bus" ? rand(1.4, 2.2) : rand(0.9, 1.7);
+        const linkedLifecycle =
+          kind === "trace" && traceJoin
+            ? resolveLinkedLifecycle(traceJoin.bus, now, defaultDrawDuration)
+            : null;
+        const drawDuration = linkedLifecycle?.drawDuration ?? defaultDrawDuration;
+        const holdDuration = linkedLifecycle?.holdDuration ?? defaultHoldDuration;
+        const fadeDuration = linkedLifecycle?.fadeDuration ?? defaultFadeDuration;
+        const baseCircuit = {
+          id,
+          kind,
+          side,
+          createdAt: now,
+          d,
+          gridPts: route,
+          nodes,
+          busBundleOffsets:
+            kind === "bus" ? getBusBundleOffsets(currentLayout.viewWidth) : undefined,
+          busJoin:
+            kind === "trace" && traceJoin
+              ? {
+                  busId: traceJoin.bus.id,
+                  busIndex: traceJoin.busIndex,
+                  traceIndex: traceJoin.traceIndex,
+                  laneSide: traceJoin.laneSide,
+                  laneRank,
+                }
+              : undefined,
+          drawDuration,
+          holdDuration,
+          fadeDuration,
+          totalDuration: drawDuration + holdDuration + fadeDuration,
+          strokeWidth: kind === "bus" ? rand(1.45, 1.8) : rand(0.9, 1.15),
+        };
+
+        return {
+          ...baseCircuit,
+          renderPaths:
+            kind === "trace" && traceJoin
+              ? [buildJoinedTraceRenderPath(traceJoin, currentLayout, laneRank)]
+              : buildRenderablePaths(baseCircuit, currentLayout),
+        };
+      }
+
+      return null;
+    },
+    [findRouteAsync],
+  );
+
   const spawnCircuit = useCallback(
-    (maxCount = MAX_ACTIVE_LINES) => {
-      if (circuitsRef.current.length >= maxCount) return false;
-      const now = Date.now();
+    async (maxCount = MAX_ACTIVE_LINES) => {
+      if (spawnInFlightRef.current || circuitsRef.current.length >= maxCount) {
+        return false;
+      }
 
-      const busCount = countKind(circuitsRef.current, "bus");
-      const desiredKind: LineKind =
-        busCount < MIN_BUS_LINES
-          ? "bus"
-          : busCount < MAX_BUS_LINES && Math.random() < 0.09
+      const generation = generationTokenRef.current;
+      spawnInFlightRef.current = true;
+
+      try {
+        const now = Date.now();
+        const busCount = countKind(circuitsRef.current, "bus");
+        const desiredKind: LineKind =
+          busCount < MIN_BUS_LINES
             ? "bus"
-            : "trace";
+            : busCount < MAX_BUS_LINES && Math.random() < 0.09
+              ? "bus"
+              : "trace";
 
-      const circuit = createCircuit(
-        `c-${nextIdRef.current}`,
-        desiredKind,
-        now,
-        circuitsRef.current,
-        spawnCacheRef.current,
-        layout,
-        edgeAnchors,
-        innerAnchors,
-        ringAnchors,
-      );
-
-      const fallbackCircuit =
-        circuit ||
-        createCircuit(
+        const circuit = await createCircuitAsync(
           `c-${nextIdRef.current}`,
-          desiredKind === "bus" ? "trace" : "bus",
+          desiredKind,
           now,
           circuitsRef.current,
           spawnCacheRef.current,
@@ -2195,47 +2543,106 @@ export function CircuitLines({
           edgeAnchors,
           innerAnchors,
           ringAnchors,
+          generation,
         );
 
-      if (!fallbackCircuit) return false;
+        if (generationTokenRef.current !== generation) return false;
 
-      nextIdRef.current += 1;
-      const next = [...circuitsRef.current, fallbackCircuit];
-      circuitsRef.current = next;
-      applyCircuitToSpawnCache(spawnCacheRef.current, fallbackCircuit, layout);
-      syncPartialRenderMetrics(next, [fallbackCircuit]);
+        const fallbackCircuit =
+          circuit ||
+          (await createCircuitAsync(
+            `c-${nextIdRef.current}`,
+            desiredKind === "bus" ? "trace" : "bus",
+            now,
+            circuitsRef.current,
+            spawnCacheRef.current,
+            layout,
+            edgeAnchors,
+            innerAnchors,
+            ringAnchors,
+            generation,
+          ));
 
-      if (!fallbackCircuit.busJoin) {
-        const removalTimer = window.setTimeout(() => {
-          removeCircuit(fallbackCircuit.id);
-        }, fallbackCircuit.totalDuration * 1000);
+        if (
+          !fallbackCircuit ||
+          generationTokenRef.current !== generation
+        ) {
+          return false;
+        }
 
-        removalTimersRef.current.set(fallbackCircuit.id, removalTimer);
+        nextIdRef.current += 1;
+        const next = [...circuitsRef.current, fallbackCircuit];
+        circuitsRef.current = next;
+        applyCircuitToSpawnCache(spawnCacheRef.current, fallbackCircuit, layout);
+        syncPartialRenderMetrics(next, [fallbackCircuit]);
+
+        if (!fallbackCircuit.busJoin) {
+          const removalTimer = window.setTimeout(() => {
+            removeCircuit(fallbackCircuit.id);
+          }, fallbackCircuit.totalDuration * 1000);
+
+          removalTimersRef.current.set(fallbackCircuit.id, removalTimer);
+        }
+
+        return true;
+      } finally {
+        if (generationTokenRef.current === generation) {
+          spawnInFlightRef.current = false;
+        } else {
+          spawnInFlightRef.current = false;
+        }
       }
-      return true;
     },
-    [edgeAnchors, innerAnchors, layout, removeCircuit, ringAnchors, syncPartialRenderMetrics],
+    [
+      createCircuitAsync,
+      edgeAnchors,
+      innerAnchors,
+      layout,
+      removeCircuit,
+      ringAnchors,
+      syncPartialRenderMetrics,
+    ],
   );
+
+  const flushSpawnRequest = useCallback(async () => {
+    idleSpawnRef.current = null;
+    if (!isRunning) return;
+
+    const targetCount = pendingSpawnTargetRef.current;
+    pendingSpawnTargetRef.current = null;
+    if (!targetCount || circuitsRef.current.length >= targetCount) return;
+
+    const spawned = await spawnCircuit(targetCount);
+    if (!spawned) return;
+
+    if (circuitsRef.current.length < targetCount) {
+      pendingSpawnTargetRef.current = targetCount;
+      refillTimerRef.current = window.setTimeout(() => {
+        refillTimerRef.current = null;
+        if (!isRunning || idleSpawnRef.current !== null) return;
+        idleSpawnRef.current = scheduleIdleTask(() => {
+          void flushSpawnRequest();
+        });
+      }, MIN_FILL_INTERVAL_MS);
+    }
+  }, [isRunning, spawnCircuit]);
 
   const scheduleRefill = useCallback(
     (targetCount: number, delay = MIN_FILL_INTERVAL_MS) => {
       if (!isRunning) return;
-      if (refillTimerRef.current) return;
+      pendingSpawnTargetRef.current = Math.max(pendingSpawnTargetRef.current ?? 0, targetCount);
+      if (refillTimerRef.current || idleSpawnRef.current !== null) return;
 
       refillTimerRef.current = window.setTimeout(() => {
         refillTimerRef.current = null;
         if (!isRunning) return;
-        if (circuitsRef.current.length >= targetCount) return;
-
-        const spawned = spawnCircuit(targetCount);
-        if (!spawned) return;
-
-        if (circuitsRef.current.length < targetCount) {
-          scheduleRefill(targetCount, MIN_FILL_INTERVAL_MS);
-        }
+        if (idleSpawnRef.current !== null) return;
+        idleSpawnRef.current = scheduleIdleTask(() => {
+          void flushSpawnRequest();
+        });
       }, delay);
     },
-    [isRunning, spawnCircuit],
+    [flushSpawnRequest, isRunning],
   );
 
   useEffect(() => {
@@ -2271,7 +2678,7 @@ export function CircuitLines({
         if (count < lineTargets.min) {
           scheduleRefill(lineTargets.min);
         } else if (count < lineTargets.max && Math.random() < 0.82) {
-          spawnCircuit(lineTargets.max);
+          scheduleRefill(lineTargets.max, 0);
         }
 
         scheduleNextSpawn();
@@ -2286,7 +2693,7 @@ export function CircuitLines({
         window.clearTimeout(spawnLoopTimerRef.current);
       }
     };
-  }, [isRunning, lineTargets.max, lineTargets.min, scheduleRefill, spawnCircuit]);
+  }, [isRunning, lineTargets.max, lineTargets.min, scheduleRefill]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -2296,9 +2703,9 @@ export function CircuitLines({
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, MAX_CANVAS_DPR);
     const width = Math.max(1, Math.round(size.width));
     const height = Math.max(1, Math.round(size.height));
+    const dpr = getCanvasDpr(width);
 
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);

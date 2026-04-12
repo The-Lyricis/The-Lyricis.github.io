@@ -120,6 +120,7 @@ const lerpColor = (start: RGB, end: RGB, t: number): RGB => {
 
 interface ParticleFieldProps {
   themeIndex?: number;
+  active?: boolean;
 }
 
 const MAX_PARTICLE_CANVAS_DPR = 1.5;
@@ -167,7 +168,10 @@ function getVisibleArea(width: number, height: number, rects: Rect[]) {
   return Math.max(totalArea * 0.18, totalArea - occludedArea);
 }
 
-export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
+export function ParticleField({
+  themeIndex = 0,
+  active = true,
+}: ParticleFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: -9999, y: -9999 });
@@ -189,6 +193,17 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
       p.targetColor = getRandomColorFromTheme(themeIndex);
     });
   }, [themeIndex]);
+
+  useEffect(() => {
+    if (active) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+
+    const { w, h } = sizeRef.current;
+    ctx.clearRect(0, 0, w, h);
+  }, [active]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -539,7 +554,9 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
     window.addEventListener("scroll", updateOccluders, { passive: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    animationFrameRef.current = requestAnimationFrame(animate);
+      if (active) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
 
     return () => {
       window.removeEventListener("resize", handleResize);
@@ -552,7 +569,7 @@ export function ParticleField({ themeIndex = 0 }: ParticleFieldProps) {
       if (animationFrameRef.current)
         cancelAnimationFrame(animationFrameRef.current);
     };
-  }, []); // Theme handled separately
+  }, [active]); // Theme handled separately
 
   return (
     <canvas

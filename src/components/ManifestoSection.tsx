@@ -136,14 +136,15 @@ export function ManifestoSection() {
                     className="absolute top-0 left-0 w-full cursor-pointer group"
                   >
                     <h2 className="text-xl md:text-2xl font-mono text-[#64FFDA] opacity-80 tracking-widest uppercase mb-10 block">
-                      <span>//</span> Not just a developer
+                      <span>//</span> {messages.manifesto.eyebrow}
                     </h2>
 
                     <div className="text-2xl md:text-3xl font-light leading-snug text-[#E6F1FF] mb-6 block relative inline-block">
                       <div className="border-b border-[#64FFDA]/30 pb-6 group-hover:border-[#64FFDA] transition-colors duration-300">
-                        Engineering is my discipline; <br className="hidden md:inline" />
+                        {messages.manifesto.collapsedLead}{" "}
+                        <br className="hidden md:inline" />
                         <span className="text-[#64FFDA] font-normal">
-                          art keeps me curious.
+                          {messages.manifesto.collapsedAccent}
                         </span>
                       </div>
 

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Toaster } from "sonner";
-import { AboutSection } from "./components/AboutSection";
 import { BackToTop } from "./components/BackToTop";
 import { ContactSection } from "./components/ContactSection";
 import { ExperienceTimeline } from "./components/ExperienceTimeline";
@@ -22,6 +21,8 @@ import {
 export default function App() {
   const [themeIndex, setThemeIndex] = useState(0);
   const [pathname, setPathname] = useState(() => window.location.pathname);
+  const [isHomeVisible, setIsHomeVisible] = useState(false);
+  const homeSectionRef = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
     setThemeIndex(Math.floor(Math.random() * 5));
@@ -49,6 +50,24 @@ export default function App() {
     ? getProjectSlugFromPath(pathname)
     : null;
 
+  React.useEffect(() => {
+    const section = homeSectionRef.current;
+    if (!section || projectSlug) {
+      setIsHomeVisible(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHomeVisible(entry.isIntersecting);
+      },
+      { threshold: 0.15 },
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [projectSlug]);
+
   return (
     <div
       className="relative w-full min-h-screen overflow-hidden"
@@ -56,7 +75,7 @@ export default function App() {
         background: "linear-gradient(to bottom, #020C1B 0%, #0A192F 100%)",
       }}
     >
-      <ParticleField themeIndex={themeIndex} />
+      <ParticleField themeIndex={themeIndex} active={!isHomeVisible} />
       <Navigation />
 
       <Toaster
@@ -78,13 +97,12 @@ export default function App() {
           </>
         ) : (
           <>
-            <section id="home" data-particle-occluder>
+            <section id="home" data-particle-occluder ref={homeSectionRef}>
               <Hero />
             </section>
-            <section id="about">
-              <AboutSection />
+            <section id="be-an-artist">
+              <ManifestoSection />
             </section>
-            <ManifestoSection />
             <section id="services">
               <Services />
             </section>

@@ -45,30 +45,33 @@ const en: Messages = {
     },
   },
   manifesto: {
+    eyebrow: "Not just a developer",
+    collapsedLead: "Engineering is the discipline;",
+    collapsedAccent: "art keeps the curiosity alive.",
     paragraphs: [
-      "Outside of work, I stay close to art through drawing, photography, games, and films. I'm drawn to light, composition, and rhythm. I pay attention to how a scene is framed, how color sets the mood, and how pacing shapes emotion. These everyday observations quietly build my sense of taste, one detail at a time.",
-      "Photography trains me to wait for the right moment: a subtle gesture, a shift of shadow, or a reflection that turns ordinary space into something cinematic. Drawing does the opposite. It slows time down and helps me break a scene into shapes and values, so I can understand why a visual choice feels balanced, tense, or calm.",
-      "Games and films extend that practice into constructed worlds. I notice how environments guide the eye, how camera movement changes meaning, and how silence can be as expressive as action. Sometimes I pause just to take a photo in-game, because a single frame can carry atmosphere, story, and emotion without a line of dialogue.",
+      "Art nurtures technology; technology realizes art. Beyond work, aesthetic perception is refined through painting, photography, games, and films, with every observation settling into nourishment for creation.",
+      "Photography captures fleeting light, infusing rendering with warmth; Painting deconstructs visual logic, letting technology carry aesthetics; Games and films extend this perception into the crafting of virtual worlds.",
+      "With technology building the framework, and art breathing life into it, every creative vision becomes a work where technology and art converge.",
     ],
     collapse: "Collapse",
   },
   services: {
     subtitle:
-      "Bridging the gap between creative vision and technical reality.",
+      "Using technology to empower creative vision and turn strong ideas into high-quality products with reliable delivery.",
     outputLabel: "OUTPUT:",
     capabilities: {
       shaderEngineering:
-        "Custom HLSL/GLSL shaders for unique visual identities.",
+        "Rendering and shader engineering for distinctive visual language and more immersive real-time experiences.",
       performanceOps:
-        "Using profiling tools to identify bottlenecks and optimize CPU/GPU, memory, and draw calls for stable 60+ FPS.",
+        "End-to-end performance optimization to keep products smooth and stable across target devices.",
       toolDevelopment:
-        "Editor extensions and CLI tools to accelerate art teams.",
+        "Custom tools and automation that improve creation speed and reduce iteration cost across production.",
       proceduralTech:
-        "Algorithmic generation for infinite worlds and assets.",
+        "Procedural content generation for building rich, high-quality digital content and environments efficiently.",
       renderPipelines:
-        "Customizing scriptable render pipelines (URP/HDRP).",
+        "Custom rendering pipelines and visual solutions tailored to product needs and final visual goals.",
       assetPipelines:
-        "Automated import/export and validation workflows.",
+        "End-to-end content pipeline design connecting creative, technical, and production workflows for reliable delivery.",
     },
     pipeline: {
       discoveryScope: {
@@ -132,6 +135,7 @@ const en: Messages = {
     projectPage: "PROJECT PAGE",
   },
   contact: {
+    title: "Let's Create Something Extraordinary",
     errors: {
       nameRequired: "Name is required",
       nameMin: "Name must be at least 2 characters",
@@ -149,7 +153,7 @@ const en: Messages = {
       openedDescription: "If nothing opened, use the direct email listed below.",
     },
     intro:
-      "I am actively seeking new opportunities to contribute to innovative game projects. Whether you're a recruiter scouting for talent, a developer looking for collaboration, or just want to discuss graphics tech, my inbox is always open.",
+      "Open to new collaborations and opportunities. Whether it's a role, a project collaboration, or a technical conversation, feel free to reach out anytime.",
     labels: {
       name: "Name",
       email: "Email",
@@ -165,12 +169,12 @@ const en: Messages = {
       subject: "What's this about?",
       message: "Tell me about your project...",
     },
-    buttons: {
-      openDraft: "Open Email Draft",
-      opening: "Opening...",
-      draftReady: "Draft Ready",
-      failed: "Failed to Send",
-    },
+      buttons: {
+        openDraft: "Open Email Draft",
+        opening: "Opening...",
+        draftReady: "Draft Ready",
+        failed: "Failed to Open Draft",
+      },
     meta: {
       responseTime: "I'll respond within 24 hours",
       locationValue: "Gothenburg, Sweden",
