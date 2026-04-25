@@ -1,6 +1,18 @@
 const { env } = require("../config/env");
 const { createHttpError } = require("../utils/httpError");
 
+function getExcludedKeywords() {
+  return env.steamExcludedKeywords
+    .split(",")
+    .map((keyword) => keyword.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function shouldExcludeGame(game, excludedKeywords) {
+  const normalizedName = String(game.name || "").toLowerCase();
+  return excludedKeywords.some((keyword) => normalizedName.includes(keyword));
+}
+
 function mapOwnedGame(game) {
   const hours = Math.round((game.playtime_forever || 0) / 60);
 
@@ -18,7 +30,7 @@ function mapOwnedGame(game) {
   };
 }
 
-async function getOwnedGames({ count = 24 } = {}) {
+async function getOwnedGames({ count = 24, filterLibrary = env.steamFilterLibrary } = {}) {
   if (!env.steamApiKey || !env.steamId) {
     throw createHttpError(500, "Steam API is not configured", {
       required: ["STEAM_API_KEY", "STEAM_ID"],
@@ -42,9 +54,17 @@ async function getOwnedGames({ count = 24 } = {}) {
 
   const data = await response.json();
   const games = data?.response?.games || [];
+  const excludedKeywords = getExcludedKeywords();
 
   return games
     .filter((game) => (game.playtime_forever || 0) > 0)
+    .filter((game) => {
+      if (!filterLibrary) {
+        return true;
+      }
+
+      return !shouldExcludeGame(game, excludedKeywords);
+    })
     .sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0))
     .slice(0, safeCount)
     .map(mapOwnedGame);

@@ -11,6 +11,8 @@ export function HorizontalAboutSection() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const touchStartXRef = useRef<number | null>(null);
   const wheelLockedRef = useRef(false);
+  const wheelUnlockTimeoutRef = useRef<number | null>(null);
+  const currentSlideRef = useRef(0);
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -55,6 +57,10 @@ export function HorizontalAboutSection() {
   }, []);
 
   useEffect(() => {
+    currentSlideRef.current = currentSlide;
+  }, [currentSlide]);
+
+  useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
         return;
@@ -64,18 +70,28 @@ export function HorizontalAboutSection() {
       if (!section) return;
 
       const rect = section.getBoundingClientRect();
-      const sectionTopReached = rect.top <= 0;
+      const viewportHeight = window.innerHeight;
+      const wheelTravel = Math.abs(event.deltaY);
+      const sectionTopReached = rect.top <= 1;
       const sectionVisible = rect.bottom > 0;
       const sectionAnchored = sectionTopReached && sectionVisible;
       const scrollingDown = event.deltaY > 0;
+      const currentIndex = currentSlideRef.current;
+      const canMoveHorizontally = scrollingDown
+        ? currentIndex < slides.length - 1
+        : currentIndex > 0;
+      const enteringSection =
+        sectionVisible &&
+        ((scrollingDown && rect.top > 0 && rect.top <= wheelTravel + 32) ||
+          (!scrollingDown &&
+            rect.bottom < viewportHeight &&
+            viewportHeight - rect.bottom <= wheelTravel + 32));
 
       const shouldLockVerticalScroll =
-        sectionAnchored &&
-        ((scrollingDown && currentSlide < slides.length - 1) ||
-          (!scrollingDown && currentSlide > 0) ||
-          wheelLockedRef.current);
+        (sectionAnchored || enteringSection) &&
+        (canMoveHorizontally || wheelLockedRef.current);
 
-      if (!sectionAnchored) {
+      if (!sectionAnchored && !enteringSection) {
         return;
       }
 
@@ -93,23 +109,34 @@ export function HorizontalAboutSection() {
         return;
       }
 
-      const nextSlide = scrollingDown ? currentSlide + 1 : currentSlide - 1;
+      const nextSlide = scrollingDown ? currentIndex + 1 : currentIndex - 1;
 
       if (nextSlide < 0 || nextSlide >= slides.length) {
         return;
       }
 
       wheelLockedRef.current = true;
+      currentSlideRef.current = nextSlide;
       setCurrentSlide(nextSlide);
 
-      window.setTimeout(() => {
+      if (wheelUnlockTimeoutRef.current != null) {
+        window.clearTimeout(wheelUnlockTimeoutRef.current);
+      }
+
+      wheelUnlockTimeoutRef.current = window.setTimeout(() => {
         wheelLockedRef.current = false;
-      }, 500);
+        wheelUnlockTimeoutRef.current = null;
+      }, 650);
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false });
-    return () => window.removeEventListener("wheel", handleWheel);
-  }, [currentSlide, slides.length]);
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+      if (wheelUnlockTimeoutRef.current != null) {
+        window.clearTimeout(wheelUnlockTimeoutRef.current);
+      }
+    };
+  }, [slides.length]);
 
   const goToSlide = (nextIndex: number) => {
     const boundedIndex = Math.max(0, Math.min(nextIndex, slides.length - 1));
@@ -123,6 +150,7 @@ export function HorizontalAboutSection() {
       });
     }
 
+    currentSlideRef.current = boundedIndex;
     setCurrentSlide(boundedIndex);
   };
 
