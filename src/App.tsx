@@ -2,15 +2,13 @@ import React, { useState } from "react";
 import { Toaster } from "sonner";
 import { BackToTop } from "./components/BackToTop";
 import { ContactSection } from "./components/ContactSection";
-import { ExperienceTimeline } from "./components/ExperienceTimeline";
 import { Hero } from "./components/Hero";
+import { HorizontalAboutSection } from "./components/HorizontalAboutSection";
+import { HorizontalSkillsServicesSection } from "./components/HorizontalSkillsServicesSection";
 import { InteractiveFooter } from "./components/InteractiveFooter";
-import { ManifestoSection } from "./components/ManifestoSection";
 import { Navigation } from "./components/Navigation";
 import { ParticleField } from "./components/ParticleField";
 import { ProjectGallery } from "./components/ProjectGallery";
-import { Services } from "./components/Services";
-import { TechStack } from "./components/TechStack";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import {
   getProjectSlugFromPath,
@@ -100,17 +98,11 @@ export default function App() {
             <section id="home" data-particle-occluder ref={homeSectionRef}>
               <Hero />
             </section>
-            <section id="be-an-artist">
-              <ManifestoSection />
-            </section>
-            <section id="services">
-              <Services />
-            </section>
-            <TechStack />
-            <ExperienceTimeline />
+            <HorizontalAboutSection />
             <section id="featured-projects">
               <ProjectGallery />
             </section>
+            <HorizontalSkillsServicesSection />
             <section id="contact" data-particle-occluder>
               <ContactSection />
             </section>

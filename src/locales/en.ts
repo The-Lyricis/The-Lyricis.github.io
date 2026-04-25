@@ -4,7 +4,7 @@ const en: Messages = {
   navigation: {
     home: "Home",
     about: "About",
-    services: "Services",
+    servicesandskills: "Skills & Services",
     skills: "Skills",
     projects: "Projects",
     contact: "Contact",
@@ -187,7 +187,7 @@ const en: Messages = {
   footer: {
     email: "Email",
     linkedin: "LinkedIn",
-    copyright: "© 2026 Jiliang Ye · Technical Artist & Game Developer",
+    copyright: "© 2026 Jiliang Ye · Personal Homepage",
   },
 };
 

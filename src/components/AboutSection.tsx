@@ -1,210 +1,209 @@
 import React from "react";
 import { motion } from "motion/react";
 import {
-  Box,
+  Camera,
   Code2,
   Cpu,
-  Layers,
-  Lightbulb,
-  Wand2,
-  Wrench,
-  Zap,
+  Gamepad2,
+  Palette,
+  Rocket,
 } from "lucide-react";
-import { useMessages } from "../i18n";
+import { useLocale } from "../i18n";
 
 export function AboutSection() {
-  const messages = useMessages();
+  const { locale } = useLocale();
 
-  const highlights = [
-    {
-      icon: <Code2 className="w-6 h-6" />,
-      title: "Shader Development",
-      description: messages.about.highlights.shaderDevelopment,
-    },
-    {
-      icon: <Lightbulb className="w-6 h-6" />,
-      title: "Gameplay Engineering",
-      description: messages.about.highlights.gameplayEngineering,
-    },
-    {
-      icon: <Cpu className="w-6 h-6" />,
-      title: "Graphics Research",
-      description: messages.about.highlights.graphicsResearch,
-    },
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: "Performance Optimization",
-      description: messages.about.highlights.performanceOptimization,
-    },
-    {
-      icon: <Wand2 className="w-6 h-6" />,
-      title: "VFX Systems",
-      description: messages.about.highlights.vfxSystems,
-    },
-    {
-      icon: <Wrench className="w-6 h-6" />,
-      title: "Tool Authoring",
-      description: messages.about.highlights.toolAuthoring,
-    },
-    {
-      icon: <Box className="w-6 h-6" />,
-      title: "Procedural Generation",
-      description: messages.about.highlights.proceduralGeneration,
-    },
-    {
-      icon: <Layers className="w-6 h-6" />,
-      title: "Pipeline Architecture",
-      description: messages.about.highlights.pipelineArchitecture,
-    },
-  ];
+  const content =
+    locale === "zh"
+      ? {
+          title: "About Me",
+          subtitle: "一个在技术与艺术交界处持续探索的多面创作者。",
+          quote: "“技术是手段，艺术是目标，游戏是表达。”",
+          identities: [
+            {
+              icon: <Code2 className="w-7 h-7" />,
+              title: "程序员",
+              description:
+                "从底层引擎到可扩展系统架构，持续打磨清晰、稳定且高性能的代码实现。",
+              tags: ["C++", "C#", "HLSL/GLSL", "Python"],
+            },
+            {
+              icon: <Palette className="w-7 h-7" />,
+              title: "创作者",
+              description:
+                "在技术与审美之间建立连接。对我来说，Technical Art 既是方法，也是表达语言。",
+              tags: ["Shader Art", "VFX Design", "Procedural", "Digital Painting"],
+            },
+            {
+              icon: <Camera className="w-7 h-7" />,
+              title: "摄影爱好者",
+              description:
+                "记录光线、空间与瞬间，把现实中的观察转化为数字媒介中的视觉感受。",
+              tags: ["Landscape", "Urban", "Cinematic", "Post-Processing"],
+            },
+            {
+              icon: <Gamepad2 className="w-7 h-7" />,
+              title: "玩家",
+              description:
+                "从《塞尔达》到《黑暗之魂》，长期而深入的游戏体验塑造了我对设计节奏和反馈的理解。",
+              tags: ["RPG", "Souls-like", "Indie Games", "Action Adventure"],
+            },
+            {
+              icon: <Cpu className="w-7 h-7" />,
+              title: "图形技术探索者",
+              description:
+                "持续关注实时渲染，从光线追踪到体积效果，把图形技术当作长期研究方向。",
+              tags: ["Ray Tracing", "PBR", "Volumetric", "SIGGRAPH"],
+            },
+            {
+              icon: <Rocket className="w-7 h-7" />,
+              title: "独立游戏开发者",
+              description:
+                "从概念到落地尽量保持完整控制。Hybrid Engine 是我持续实践与验证技术想法的试验场。",
+              tags: ["Game Design", "Solo Dev", "Full Stack", "Publishing"],
+            },
+          ],
+        }
+      : {
+          title: "About Me",
+          subtitle:
+            "A multi-faceted creator navigating the intersection of technology and art.",
+          quote:
+            '"Technology is the means, art is the goal, games are the expression."',
+          identities: [
+            {
+              icon: <Code2 className="w-7 h-7" />,
+              title: "Programmer",
+              description:
+                "Crafting elegant code and high-performance systems from low-level engines to scalable architectures.",
+              tags: ["C++", "C#", "HLSL/GLSL", "Python"],
+            },
+            {
+              icon: <Palette className="w-7 h-7" />,
+              title: "Artist",
+              description:
+                "Bridging technology and artistic expression. Technical Art is my creative language.",
+              tags: ["Shader Art", "VFX Design", "Procedural", "Digital Painting"],
+            },
+            {
+              icon: <Camera className="w-7 h-7" />,
+              title: "Photographer",
+              description:
+                "Capturing light and moments, translating real-world beauty into digital medium.",
+              tags: ["Landscape", "Urban", "Cinematic", "Post-Processing"],
+            },
+            {
+              icon: <Gamepad2 className="w-7 h-7" />,
+              title: "Gamer",
+              description:
+                "Deep gaming experiences from Zelda to Dark Souls shape my design understanding.",
+              tags: ["RPG", "Souls-like", "Indie Games", "Action Adventure"],
+            },
+            {
+              icon: <Cpu className="w-7 h-7" />,
+              title: "Graphics Enthusiast",
+              description:
+                "Exploring real-time rendering from ray tracing to volumetric effects.",
+              tags: ["Ray Tracing", "PBR", "Volumetric", "SIGGRAPH"],
+            },
+            {
+              icon: <Rocket className="w-7 h-7" />,
+              title: "Indie Game Developer",
+              description:
+                "Full control from concept to release. Hybrid Engine is my technical playground.",
+              tags: ["Game Design", "Solo Dev", "Full Stack", "Publishing"],
+            },
+          ],
+        };
 
   return (
-    <div className="min-h-screen px-8 py-20 flex items-center justify-center">
-      <div className="max-w-6xl w-full">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="text-center mb-16">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-3xl md:text-5xl font-bold text-[#E6F1FF] tracking-tight mb-4"
-            >
-              ABOUT <span className="text-[#64FFDA]">ME</span>
-            </motion.h2>
-            <motion.div
-              initial={{ opacity: 0, width: 0 }}
-              whileInView={{ opacity: 1, width: "100px" }}
-              viewport={{ once: true }}
-              className="h-1 bg-[#233554] mx-auto rounded-full overflow-hidden"
-            >
-              <div className="h-full bg-[#64FFDA] w-1/2 animate-pulse" />
-            </motion.div>
-          </div>
-
+    <div className="h-full min-h-screen px-8 md:px-16 py-12 flex items-center justify-center overflow-y-auto">
+      <div className="w-full">
+        <div className="max-w-5xl w-full mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-center mb-16 max-w-4xl mx-auto"
+            transition={{ duration: 0.6 }}
+            className="mb-12 text-center"
           >
-            <p className="text-xl leading-loose mb-6" style={{ color: "#CCD6F6" }}>
-              {messages.about.intro.prefix}
-              <span style={{ color: "#64FFDA" }}>
-                {messages.about.intro.technicalArtist}
-              </span>
-              {messages.about.intro.connector}
-              <span style={{ color: "#4A9EFF" }}>
-                {messages.about.intro.gameDeveloper}
-              </span>
-              {messages.about.intro.suffix}
-            </p>
-            <p className="text-lg leading-loose" style={{ color: "#8892B0" }}>
-              {messages.about.summary}
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-[#E6F1FF]">
+              ABOUT <span className="text-[#64FFDA]">ME</span>
+            </h2>
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              whileInView={{ opacity: 1, width: "60px" }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="mx-auto mb-4 h-1 rounded-full bg-[#64FFDA]"
+            />
+            <p className="mx-auto max-w-2xl text-base leading-relaxed text-[#8892B0]">
+              {content.subtitle}
             </p>
           </motion.div>
 
-          <div className="relative py-8">
-            <style>{`
-              @keyframes scroll {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-50%); }
-              }
-              .carousel-track {
-                animation: scroll 40s linear infinite;
-                will-change: transform;
-              }
-              .carousel-track:hover {
-                animation-play-state: paused;
-              }
-              .carousel-viewport {
-                overflow: hidden;
-                padding: 18px 0;
-                margin: -18px 0;
-                -webkit-mask-image: linear-gradient(
-                  to right,
-                  transparent 0%,
-                  rgba(0, 0, 0, 1) 12%,
-                  rgba(0, 0, 0, 1) 88%,
-                  transparent 100%
-                );
-                mask-image: linear-gradient(
-                  to right,
-                  transparent 0%,
-                  rgba(0, 0, 0, 1) 12%,
-                  rgba(0, 0, 0, 1) 88%,
-                  transparent 100%
-                );
-                -webkit-mask-repeat: no-repeat;
-                mask-repeat: no-repeat;
-                -webkit-mask-size: 100% 100%;
-                mask-size: 100% 100%;
-              }
-            `}</style>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+            {content.identities.map((identity, index) => (
+              <motion.div
+                key={identity.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{
+                  delay: index * 0.05,
+                  duration: 0.5,
+                }}
+                className="group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-8 pt-0.5">
+                    <span className="text-2xl font-light text-[#64FFDA] opacity-40 group-hover:opacity-100 transition-opacity duration-300">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
 
-            <div className="carousel-viewport">
-              <div className="flex carousel-track overflow-visible">
-                {[...highlights, ...highlights].map((highlight, index) => (
-                  <motion.div
-                    key={`${highlight.title}-${index}`}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{
-                      delay: 0.3 + (index % highlights.length) * 0.05,
-                      duration: 0.5,
-                    }}
-                    whileHover={{ y: -5 }}
-                    className="relative group flex-shrink-0"
-                    style={{
-                      width: "280px",
-                      marginRight: "24px",
-                    }}
-                  >
-                    <div
-                      className="backdrop-blur-sm border rounded-lg p-6 h-full transition-all duration-300"
-                      style={{
-                        backgroundColor: "rgba(10, 25, 47, 0.5)",
-                        borderColor: "rgba(100, 255, 218, 0.2)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "#64FFDA";
-                        e.currentTarget.style.boxShadow =
-                          "0 0 20px rgba(100, 255, 218, 0.3)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor =
-                          "rgba(100, 255, 218, 0.2)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
-                    >
-                      <div
-                        className="mb-4 group-hover:scale-110 transition-transform duration-300"
-                        style={{ color: "#64FFDA" }}
-                      >
-                        {highlight.icon}
+                  <div className="flex-1 border-l border-[#233554] pl-4 group-hover:border-[#64FFDA] transition-colors duration-300">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="text-[#64FFDA] opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+                        {identity.icon}
                       </div>
-                      <h3 className="text-base mb-2" style={{ color: "#E6F1FF" }}>
-                        {highlight.title}
+                      <h3 className="text-xl font-light text-[#E6F1FF]">
+                        {identity.title}
                       </h3>
-                      <p
-                        className="text-sm leading-loose"
-                        style={{ color: "#8892B0" }}
-                      >
-                        {highlight.description}
-                      </p>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+
+                    <p className="text-sm text-[#8892B0] leading-relaxed mb-3">
+                      {identity.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {identity.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="text-xs font-mono text-[#64FFDA] opacity-50 hover:opacity-100 transition-opacity duration-200"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="mt-10 pt-8 border-t border-[#233554]"
+          >
+            <p className="text-lg md:text-xl font-light text-[#64FFDA] italic">
+              {content.quote}
+            </p>
+          </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ export interface Messages {
   navigation: {
     home: string;
     about: string;
-    services: string;
+    servicesandskills: string;
     skills: string;
     projects: string;
     contact: string;

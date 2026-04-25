@@ -44,6 +44,7 @@ export function ManifestoSection() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden py-24">
+      {/*
       <AnimatePresence>
         <motion.div
           key={currentIndex}
@@ -60,6 +61,7 @@ export function ManifestoSection() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#020C1B] via-[#0A192FCC] to-[#020C1B]" />
         </motion.div>
       </AnimatePresence>
+      */}
 
       <div className="max-w-7xl mx-auto w-full px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-12 gap-16 items-start">

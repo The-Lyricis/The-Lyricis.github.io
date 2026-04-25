@@ -10,7 +10,6 @@ import {
   Terminal,
   Wrench,
 } from "lucide-react";
-import { FloatingCode } from "./FloatingCode";
 
 interface Tool {
   name: string;
@@ -128,9 +127,6 @@ export function TechStack() {
           zIndex: -20,
         }}
       />
-
-      <FloatingCode />
-
       <div className="max-w-7xl mx-auto w-full relative z-10">
         <div className="flex flex-col items-center mb-16 relative">
           <motion.div

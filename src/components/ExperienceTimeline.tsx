@@ -208,19 +208,19 @@ export function ExperienceTimeline() {
 
   return (
     <div
-      className="min-h-screen px-4 md:px-8 py-20 flex flex-col relative overflow-hidden"
+      className="min-h-screen px-4 md:px-8 py-20 flex flex-col justify-center relative overflow-hidden"
       onWheel={() => {
         if (expandedId) return;
       }}
     >
-      <div className="text-center mb-8 relative z-10 shrink-0">
+      <div className="text-center mb-10 mt-8 relative z-10 shrink-0">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="text-3xl md:text-5xl font-bold text-[#E6F1FF] tracking-tight mb-2"
         >
-          EXPERIENCE <span className="text-[#64FFDA]">&</span> JOURNEY
+          EXPERIENCE <span className="text-[#64FFDA]">&</span> EDUCATION
         </motion.h2>
         <motion.div
           initial={{ opacity: 0, width: 0 }}

@@ -4,7 +4,7 @@ const zh: Messages = {
   navigation: {
     home: "首页",
     about: "关于我",
-    services: "个人服务",
+    servicesandskills: "技术和服务",
     skills: "技术栈",
     projects: "项目展示",
     contact: "联系方式",
@@ -12,11 +12,11 @@ const zh: Messages = {
   },
   hero: {
     viewProjects: "查看项目",
-    contact: "联系我",
+    contact: "联系方式",
   },
   about: {
     intro: {
-      prefix: "我是一名",
+      prefix: "我是一名", 
       technicalArtist: "技术美术",
       connector: "，也是",
       gameDeveloper: "游戏开发者",

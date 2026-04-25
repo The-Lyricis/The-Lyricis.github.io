@@ -34,13 +34,17 @@ export function Navigation() {
     languages.find((language) => language.value === locale) ?? languages[0];
   const resumeFileName = locale === "zh" ? "resume-zh.pdf" : "resume-en.pdf";
   const resumeHref = `${import.meta.env.BASE_URL}${resumeFileName}`;
+  const servicesNavLabel = messages.navigation.servicesandskills;
 
   const navItems: NavItem[] = [
     { id: "home", label: messages.navigation.home, href: "#home" },
     { id: "about", label: messages.navigation.about, href: "#be-an-artist" },
-    { id: "services", label: messages.navigation.services, href: "#services" },
-    { id: "skills", label: messages.navigation.skills, href: "#skills" },
-    { id: "projects", label: messages.navigation.projects, href: "#projects" },
+    {
+      id: "services",
+      label: servicesNavLabel,
+      href: "#skills-services",
+    },
+    { id: "projects", label: messages.navigation.projects, href: "#featured-projects" },
     { id: "contact", label: messages.navigation.contact, href: "#contact" },
   ];
 
@@ -92,20 +96,41 @@ export function Navigation() {
     const sectionMap: Record<string, string> = {
       home: "home",
       about: "be-an-artist",
-      services: "services",
-      skills: "skills",
+      services: "skills-services",
       projects: "featured-projects",
       contact: "contact",
     };
 
+    const horizontalSlideMap: Record<string, string | undefined> = {
+      about: "manifesto",
+      services: "services",
+    };
+
     const targetId = sectionMap[id] || id;
+    const targetSlide = horizontalSlideMap[id];
+
+    const navigateHorizontalSection = () => {
+      document
+        .getElementById(targetId)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      if (targetSlide) {
+        const eventName =
+          id === "services"
+            ? "horizontal-skills:navigate"
+            : "horizontal-about:navigate";
+        window.dispatchEvent(
+          new CustomEvent(eventName, {
+            detail: { slideKey: targetSlide },
+          }),
+        );
+      }
+    };
 
     if (isProjectDetailPath(window.location.pathname)) {
       navigateTo(buildHomeSectionPath(targetId));
       requestAnimationFrame(() => {
-        document
-          .getElementById(targetId)
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        navigateHorizontalSection();
       });
       return;
     }
@@ -114,10 +139,7 @@ export function Navigation() {
 
     if (!targetElement) return;
 
-    targetElement.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    navigateHorizontalSection();
   };
 
   const handleResumeClick = () => {
