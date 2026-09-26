@@ -44,6 +44,7 @@ export function Navigation() {
       label: servicesNavLabel,
       href: "#skills-services",
     },
+    { id: "gaming", label: messages.navigation.gaming, href: "#be-an-artist" },
     { id: "projects", label: messages.navigation.projects, href: "#featured-projects" },
     { id: "contact", label: messages.navigation.contact, href: "#contact" },
   ];
@@ -97,6 +98,7 @@ export function Navigation() {
       home: "home",
       about: "be-an-artist",
       services: "skills-services",
+      gaming: "be-an-artist",
       projects: "featured-projects",
       contact: "contact",
     };
@@ -104,6 +106,7 @@ export function Navigation() {
     const horizontalSlideMap: Record<string, string | undefined> = {
       about: "manifesto",
       services: "services",
+      gaming: "archive",
     };
 
     const targetId = sectionMap[id] || id;
