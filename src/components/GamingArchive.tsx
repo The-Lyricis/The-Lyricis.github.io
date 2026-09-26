@@ -10,6 +10,7 @@ interface Game {
   icon?: string;
   appId?: number;
   recentHours?: number;
+  lastPlayedAt?: number;
   achievements?: {
     unlocked: number;
     total: number;
@@ -27,6 +28,7 @@ interface LayoutCell {
 
 interface SteamGameResponse {
   source: string;
+  syncedAt?: string;
   count: number;
   games: Array<{
     id: number;
@@ -34,6 +36,7 @@ interface SteamGameResponse {
     name: string;
     hours: number;
     recentHours?: number;
+    lastPlayedAt?: number;
     icon?: string | null;
     storeUrl?: string | null;
   }>;
@@ -104,7 +107,14 @@ export function GamingArchive() {
   const [isCompactLayout, setIsCompactLayout] = useState(false);
 
   const sortedGames = useMemo(
-    () => [...games].sort((a, b) => b.hours - a.hours),
+    () =>
+      [...games].sort((a, b) => {
+        const lastPlayedDifference = (b.lastPlayedAt || 0) - (a.lastPlayedAt || 0);
+        if (lastPlayedDifference) return lastPlayedDifference;
+
+        const recentDifference = (b.recentHours || 0) - (a.recentHours || 0);
+        return recentDifference || b.hours - a.hours;
+      }),
     [games],
   );
 
@@ -124,47 +134,51 @@ export function GamingArchive() {
       window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1" ||
       !window.location.hostname.endsWith("github.io");
-    const apiRoot = apiBaseUrl || (canUseSameOriginApi ? "" : null);
-
-    if (apiRoot == null) {
-      return () => controller.abort();
-    }
-
     const count = MOSAIC_LAYOUT.length;
-    const endpoint = `${apiRoot}/api/steam/games?count=${count}`;
+    const endpoints = [
+      ...(apiBaseUrl || canUseSameOriginApi
+        ? [`${apiBaseUrl}/api/steam/games?count=50`]
+        : []),
+      `${import.meta.env.BASE_URL}steam-games.json?updated=${Date.now()}`,
+    ];
 
     async function loadSteamGames() {
-      try {
-        const response = await fetch(endpoint, {
-          signal: controller.signal,
-        });
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            signal: controller.signal,
+            cache: "no-store",
+          });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch Steam games: ${response.status}`);
-        }
+          if (!response.ok) {
+            continue;
+          }
 
-        const payload = (await response.json()) as SteamGameResponse;
-        if (!Array.isArray(payload.games) || payload.games.length === 0) {
+          const payload = (await response.json()) as SteamGameResponse;
+          if (!Array.isArray(payload.games) || payload.games.length === 0) {
+            continue;
+          }
+
+          const steamGames = payload.games.map((game) => ({
+            id: game.id,
+            name: game.name,
+            hours: game.hours,
+            recentHours: game.recentHours,
+            lastPlayedAt: game.lastPlayedAt,
+            appId: game.appId,
+            icon: game.icon || undefined,
+          }));
+
+          setGames(mergeSteamGames(steamGames, count));
           return;
+        } catch (error) {
+          if (controller.signal.aborted) {
+            return;
+          }
         }
-
-        const steamGames = payload.games.map((game) => ({
-          id: game.id,
-          name: game.name,
-          hours: game.hours,
-          recentHours: game.recentHours,
-          appId: game.appId,
-          icon: game.icon || undefined,
-        }));
-
-        setGames(mergeSteamGames(steamGames, count));
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        console.warn("[GamingArchive] Falling back to local games data.", error);
       }
+
+      console.warn("[GamingArchive] Falling back to local games data.");
     }
 
     loadSteamGames();
@@ -283,6 +297,11 @@ function GameCard({ game, layout, rank, index }: GameCardProps) {
   };
 
   const rankColor = getRankColor();
+  const lastPlayedLabel = game.lastPlayedAt
+    ? new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(
+        new Date(game.lastPlayedAt * 1000),
+      )
+    : null;
 
   return (
     <motion.div
@@ -362,6 +381,12 @@ function GameCard({ game, layout, rank, index }: GameCardProps) {
             </div>
           )}
 
+          {(!game.recentHours || game.recentHours <= 0) && lastPlayedLabel && (
+            <div className="font-mono text-xs text-[#E6F1FF]/80">
+              Last played {lastPlayedLabel}
+            </div>
+          )}
+
           {game.appId && (
             <div className="flex items-center gap-1 text-xs text-[#8892B0]">
               <ExternalLink className="h-3 w-3" />
@@ -381,3 +406,4 @@ function GameCard({ game, layout, rank, index }: GameCardProps) {
     </motion.div>
   );
 }
+
