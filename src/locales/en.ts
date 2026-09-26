@@ -6,6 +6,7 @@ const en: Messages = {
     about: "About",
     servicesandskills: "Skills & Services",
     skills: "Skills",
+    gaming: "Steam",
     projects: "Projects",
     contact: "Contact",
     resume: "Resume",
