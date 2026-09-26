@@ -22,6 +22,7 @@ function mapOwnedGame(game) {
     name: game.name || `App ${game.appid}`,
     hours,
     recentHours: Math.round((game.playtime_2weeks || 0) / 60),
+    lastPlayedAt: Number(game.rtime_last_played || 0),
     icon: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appid}/header.jpg`,
     logoUrl: game.img_logo_url
       ? `https://media.steampowered.com/steamcommunity/public/images/apps/${game.appid}/${game.img_logo_url}.jpg`
@@ -71,3 +72,4 @@ async function getOwnedGames({ count = 24, filterLibrary = env.steamFilterLibrar
 }
 
 module.exports = { getOwnedGames };
+
