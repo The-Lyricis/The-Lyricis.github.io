@@ -4,6 +4,7 @@ export interface Messages {
     about: string;
     servicesandskills: string;
     skills: string;
+    gaming: string;
     projects: string;
     contact: string;
     resume: string;
