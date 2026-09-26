@@ -6,6 +6,7 @@ const zh: Messages = {
     about: "关于我",
     servicesandskills: "技术和服务",
     skills: "技术栈",
+    gaming: "Steam",
     projects: "项目展示",
     contact: "联系方式",
     resume: "获取简历",
