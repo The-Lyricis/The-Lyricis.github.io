@@ -64,6 +64,8 @@
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "node server/index.js"
+    "server": "node server/index.js",
+    "sync:steam": "node scripts/syncSteamGames.js"
   }
 }
+
