@@ -2,6 +2,9 @@ name: Deploy React Site
 on:
   push:
     branches: [master] # 确认对应你的分支名
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
 permissions:
   contents: read
   pages: write
@@ -17,6 +20,13 @@ jobs:
           node-version: 20
           cache: 'npm'
       - run: npm install
+      - name: Sync Steam library
+        if: ${{ secrets.STEAM_API_KEY != '' && secrets.STEAM_ID != '' }}
+        run: npm run sync:steam
+        env:
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          STEAM_ID: ${{ secrets.STEAM_ID }}
+          STEAM_FILTER_LIBRARY: 'true'
       - run: npm run build
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
@@ -34,3 +44,4 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
