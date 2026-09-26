@@ -9,6 +9,7 @@ interface Game {
   favorite?: boolean;
   icon?: string;
   appId?: number;
+  recentHours?: number;
   achievements?: {
     unlocked: number;
     total: number;
@@ -83,8 +84,24 @@ const MOSAIC_LAYOUT: LayoutCell[] = [
   { col: 8, row: 6, colSpan: 3, rowSpan: 2, gameIndex: 13 },
 ];
 
+function mergeSteamGames(steamGames: Game[], minimumCount: number) {
+  const seen = new Set<number>();
+  const merged: Game[] = [];
+
+  [...steamGames, ...GAMES].forEach((game) => {
+    const key = game.appId ?? game.id;
+    if (seen.has(key)) return;
+
+    seen.add(key);
+    merged.push(game);
+  });
+
+  return merged.slice(0, Math.max(minimumCount, steamGames.length));
+}
+
 export function GamingArchive() {
   const [games, setGames] = useState<Game[]>(GAMES);
+  const [isCompactLayout, setIsCompactLayout] = useState(false);
 
   const sortedGames = useMemo(
     () => [...games].sort((a, b) => b.hours - a.hours),
@@ -92,10 +109,29 @@ export function GamingArchive() {
   );
 
   useEffect(() => {
+    const query = window.matchMedia("(max-width: 768px)");
+    const handleChange = () => setIsCompactLayout(query.matches);
+
+    handleChange();
+    query.addEventListener("change", handleChange);
+    return () => query.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "";
+    const canUseSameOriginApi =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      !window.location.hostname.endsWith("github.io");
+    const apiRoot = apiBaseUrl || (canUseSameOriginApi ? "" : null);
+
+    if (apiRoot == null) {
+      return () => controller.abort();
+    }
+
     const count = MOSAIC_LAYOUT.length;
-    const endpoint = `${apiBaseUrl}/api/steam/games?count=${count}`;
+    const endpoint = `${apiRoot}/api/steam/games?count=${count}`;
 
     async function loadSteamGames() {
       try {
@@ -112,15 +148,16 @@ export function GamingArchive() {
           return;
         }
 
-        setGames(
-          payload.games.map((game) => ({
-            id: game.id,
-            name: game.name,
-            hours: game.hours,
-            appId: game.appId,
-            icon: game.icon || undefined,
-          })),
-        );
+        const steamGames = payload.games.map((game) => ({
+          id: game.id,
+          name: game.name,
+          hours: game.hours,
+          recentHours: game.recentHours,
+          appId: game.appId,
+          icon: game.icon || undefined,
+        }));
+
+        setGames(mergeSteamGames(steamGames, count));
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -135,8 +172,13 @@ export function GamingArchive() {
     return () => controller.abort();
   }, []);
 
+  const visibleCells = isCompactLayout ? MOSAIC_LAYOUT.slice(0, 12) : MOSAIC_LAYOUT;
+  const gridRows = isCompactLayout
+    ? `repeat(${Math.ceil(visibleCells.length / 2) * 2}, 96px)`
+    : "repeat(9, 68px)";
+
   return (
-    <div className="relative flex h-full min-h-screen items-center justify-center px-8 py-12">
+    <div className="relative flex h-full min-h-screen items-center justify-center px-4 py-12 md:px-8">
       <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-[#233554] to-transparent opacity-50" />
 
       <div className="mx-auto w-full max-w-7xl space-y-10">
@@ -178,30 +220,32 @@ export function GamingArchive() {
             className="mosaic-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(12, 1fr)",
-              gridTemplateRows: "repeat(9, 68px)",
-              gap: "8px",
+              gridTemplateColumns: isCompactLayout
+                ? "repeat(6, minmax(0, 1fr))"
+                : "repeat(12, 1fr)",
+              gridTemplateRows: gridRows,
+              gap: isCompactLayout ? "6px" : "8px",
               width: "100%",
             }}
           >
-            <style>{`
-              @media (max-width: 768px) {
-                .mosaic-grid {
-                  grid-template-columns: repeat(6, 1fr) !important;
-                  grid-template-rows: repeat(16, 56px) !important;
-                  gap: 4px !important;
-                }
-              }
-            `}</style>
-            {MOSAIC_LAYOUT.map((cell, idx) => {
+            {visibleCells.map((cell, idx) => {
               const game = sortedGames[cell.gameIndex % sortedGames.length];
               if (!game) return null;
+              const layout = isCompactLayout
+                ? {
+                    ...cell,
+                    col: idx % 2 === 0 ? 1 : 4,
+                    row: Math.floor(idx / 2) * 2 + 1,
+                    colSpan: 3,
+                    rowSpan: 2,
+                  }
+                : cell;
 
               return (
                 <GameCard
                   key={idx}
                   game={game}
-                  layout={cell}
+                  layout={layout}
                   rank={cell.gameIndex + 1}
                   index={idx}
                 />
@@ -311,6 +355,12 @@ function GameCard({ game, layout, rank, index }: GameCardProps) {
             </span>
             <span className="font-mono text-sm text-[#8892B0]">hours</span>
           </div>
+
+          {game.recentHours != null && game.recentHours > 0 && (
+            <div className="font-mono text-xs text-[#E6F1FF]/80">
+              +{game.recentHours}h recently
+            </div>
+          )}
 
           {game.appId && (
             <div className="flex items-center gap-1 text-xs text-[#8892B0]">
