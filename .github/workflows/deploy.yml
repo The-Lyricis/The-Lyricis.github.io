@@ -21,8 +21,12 @@ jobs:
           cache: 'npm'
       - run: npm install
       - name: Sync Steam library
-        if: ${{ secrets.STEAM_API_KEY != '' && secrets.STEAM_ID != '' }}
-        run: npm run sync:steam
+        run: |
+          if [ -n "$STEAM_API_KEY" ] && [ -n "$STEAM_ID" ]; then
+            npm run sync:steam
+          else
+            echo "Steam secrets are not configured; using the committed snapshot."
+          fi
         env:
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           STEAM_ID: ${{ secrets.STEAM_ID }}
